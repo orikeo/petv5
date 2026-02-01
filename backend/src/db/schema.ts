@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, date, numeric } from 'drizzle-orm/pg-core';
 import { pgEnum } from 'drizzle-orm/pg-core';
 import { UserRole } from '../modules/auth/auth.roles';
 
@@ -28,6 +28,22 @@ export const users = pgTable('users', {
   role: userRoleEnum('role')
     .notNull()
     .default(UserRole.USER),
+
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+export const weightEntries = pgTable('weight_entries', {
+  id: uuid('id').defaultRandom().primaryKey(),
+
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+
+  entryDate: date('entry_date').notNull(),
+
+  weight: numeric('weight', { precision: 5, scale: 2 }).notNull(),
+
+  note: text('note'),
 
   createdAt: timestamp('created_at').defaultNow().notNull()
 });

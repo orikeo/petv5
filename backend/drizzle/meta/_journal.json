@@ -29,6 +29,13 @@
       "when": 1769985817283,
       "tag": "0003_rapid_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1769987353383,
+      "tag": "0004_youthful_pride",
+      "breakpoints": true
     }
   ]
 }
