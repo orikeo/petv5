@@ -1,10 +1,13 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import type { StringValue } from 'ms';
 import { env } from '../../config/env';
+import { UserRole } from './auth.roles';
+
 
 
 export interface JwtPayload {
   userId: string;
+  role: UserRole;
 }
 
 const accessSecret: Secret = env.jwtAccessSecret;

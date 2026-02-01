@@ -45,7 +45,10 @@ class AuthService {
       throw new AppError('Invalid email or password', 401);
     }
 
-    const payload = { userId: user.id };
+    const payload = {
+  userId: user.id,
+  role: user.role
+};
 
     return {
       accessToken: generateAccessToken(payload),

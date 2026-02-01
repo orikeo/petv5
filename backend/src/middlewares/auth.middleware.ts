@@ -14,10 +14,12 @@ export const authGuard = (
   }
 
   const token = authHeader.split(' ')[1];
-
   const payload = verifyAccessToken(token);
 
-  req.user = { id: payload.userId };
+  req.user = {
+    id: payload.userId,
+    role: payload.role
+  };
 
   next();
 };

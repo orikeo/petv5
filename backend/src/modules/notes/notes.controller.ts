@@ -45,3 +45,11 @@ export const getNotes = async (
     total: result.total
   });
 };
+
+export const getAllNotes = async (
+  _req: Request,
+  res: Response
+) => {
+  const notes = await notesService.findAll(); // без userId
+  res.json(notes);
+};
