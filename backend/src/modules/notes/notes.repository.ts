@@ -1,12 +1,14 @@
 import { db } from '../../db';
 import { notes } from '../../db/schema';
 import { CreateNoteDto } from './notes.types';
+import { eq } from 'drizzle-orm';
 
 class NotesRepository {
-  async create(dto: CreateNoteDto) {
+  async create(userId: string, dto: CreateNoteDto) {
     const [note] = await db
       .insert(notes)
       .values({
+        userId,
         title: dto.title,
         content: dto.content
       })
@@ -15,8 +17,11 @@ class NotesRepository {
     return note;
   }
 
-  async findAll() {
-    return db.select().from(notes);
+  async findAllByUser(userId: string) {
+    return db
+      .select()
+      .from(notes)
+      .where(eq(notes.userId, userId));
   }
 }
 

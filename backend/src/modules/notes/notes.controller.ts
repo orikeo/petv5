@@ -7,16 +7,32 @@ export const createNote = async (
   req: Request<{}, {}, CreateNoteDto>,
   res: Response
 ) => {
+  if (!req.user) {
+    // на практике сюда не дойдёт из-за authGuard
+    throw new Error('User not found in request');
+  }
+
   validateCreateNote(req.body);
 
-  const note = await notesService.create(req.body);
+  const note = await notesService.create(
+    req.user.id,
+    req.body
+  );
+
   res.status(201).json(note);
 };
 
 export const getNotes = async (
-  _req: Request,
+  req: Request,
   res: Response
 ) => {
-  const notes = await notesService.findAll();
+  if (!req.user) {
+    throw new Error('User not found in request');
+  }
+
+  const notes = await notesService.findAllByUser(
+    req.user.id
+  );
+
   res.json(notes);
 };

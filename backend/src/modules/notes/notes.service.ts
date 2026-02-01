@@ -2,12 +2,12 @@ import { CreateNoteDto } from './notes.types';
 import { notesRepository } from './notes.repository';
 
 class NotesService {
-  create(dto: CreateNoteDto) {
-    return notesRepository.create(dto);
+  create(userId: string, dto: CreateNoteDto) {
+    return notesRepository.create(userId, dto);
   }
 
-  findAll() {
-    return notesRepository.findAll();
+  findAllByUser(userId: string) {
+    return notesRepository.findAllByUser(userId);
   }
 }
 
