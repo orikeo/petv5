@@ -7,3 +7,8 @@ export interface LoginDto {
   email: string;
   password: string;
 }
+
+export interface TelegramAuthDto {
+  telegramId: string;
+  username?: string;
+}

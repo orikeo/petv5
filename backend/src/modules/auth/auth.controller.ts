@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { RegisterDto, LoginDto } from './auth.types';
+import { RegisterDto, LoginDto, TelegramAuthDto } from './auth.types';
 import { authService } from './auth.service';
 import { validateRegister } from './auth.validator';
 import { AppError } from '../../errors/app-error';
@@ -31,6 +31,18 @@ export const login = async (
   res.json({ accessToken });
 };
 
+export const telegramAuth = async (
+  req: Request<{}, {}, TelegramAuthDto>,
+  res: Response
+) => {
+  if (!req.body.telegramId) {
+    throw new AppError('telegramId required', 400);
+  }
+
+  const result = await authService.telegramLogin(req.body);
+  res.json(result);
+};
+
 export const refresh = async (req: Request, res: Response) => {
   const token = req.cookies?.refreshToken;
 
@@ -40,9 +52,10 @@ export const refresh = async (req: Request, res: Response) => {
 
   const payload = verifyRefreshToken(token);
 
-  const accessToken = generateAccessToken({
-    userId: payload.userId
-  });
+const accessToken = generateAccessToken({
+  userId: payload.userId,
+  role: payload.role
+});
 
   res.json({ accessToken });
 };

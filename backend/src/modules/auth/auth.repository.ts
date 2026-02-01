@@ -20,6 +20,27 @@ class AuthRepository {
 
     return user;
   }
+
+  async findByTelegramId(telegramId: string) {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.telegramId, telegramId));
+
+  return user;
+}
+
+async createTelegramUser(telegramId: string) {
+  const [user] = await db
+    .insert(users)
+    .values({
+      telegramId
+    })
+    .returning();
+
+  return user;
+}
+
 }
 
 export const authRepository = new AuthRepository();

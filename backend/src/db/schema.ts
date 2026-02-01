@@ -22,8 +22,11 @@ export const notes = pgTable('notes', {
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
-  email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+
+  email: text('email').unique(),
+  passwordHash: text('password_hash'),
+
+  telegramId: text('telegram_id').unique(),
 
   role: userRoleEnum('role')
     .notNull()
