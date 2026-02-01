@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { CreateNoteDto } from './notes.types';
+import { CreateNoteDto , NotesQueryDto } from './notes.types';
 import { notesService } from './notes.service';
 import { validateCreateNote } from './notes.validator';
+import { parseNotesQuery } from './notes.query';
 
 export const createNote = async (
   req: Request<{}, {}, CreateNoteDto>,
@@ -23,16 +24,24 @@ export const createNote = async (
 };
 
 export const getNotes = async (
-  req: Request,
+  req: Request<{}, {}, {}, NotesQueryDto>,
   res: Response
 ) => {
   if (!req.user) {
-    throw new Error('User not found in request');
+    throw new Error('Unauthorized');
   }
 
-  const notes = await notesService.findAllByUser(
-    req.user.id
+  const parsedQuery = parseNotesQuery(req.query);
+
+  const result = await notesService.findWithFilters(
+    req.user.id,
+    parsedQuery
   );
 
-  res.json(notes);
+  res.json({
+    items: result.items,
+    page: parsedQuery.page,
+    limit: parsedQuery.limit,
+    total: result.total
+  });
 };

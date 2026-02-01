@@ -1,5 +1,6 @@
 import { CreateNoteDto } from './notes.types';
 import { notesRepository } from './notes.repository';
+import { ParsedNotesQuery } from './notes.query';
 
 class NotesService {
   create(userId: string, dto: CreateNoteDto) {
@@ -8,6 +9,10 @@ class NotesService {
 
   findAllByUser(userId: string) {
     return notesRepository.findAllByUser(userId);
+  }
+
+  findWithFilters(userId: string, query: ParsedNotesQuery) {
+    return notesRepository.findWithFilters(userId, query);
   }
 }
 
