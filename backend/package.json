@@ -27,6 +27,7 @@
     "debug": "^4.4.3",
     "depd": "^2.0.0",
     "diff": "^4.0.4",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "dunder-proto": "^1.0.1",
     "dynamic-dedupe": "^0.3.0",
@@ -139,13 +140,16 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/node": "^25.1.0",
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
   },
   "keywords": [],
   "author": "",

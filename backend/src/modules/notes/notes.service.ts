@@ -1,13 +1,9 @@
 import { CreateNoteDto } from './notes.types';
+import { notesRepository } from './notes.repository';
 
 class NotesService {
   create(dto: CreateNoteDto) {
-    return {
-      id: crypto.randomUUID(),
-      title: dto.title,
-      content: dto.content ?? null,
-      createdAt: new Date()
-    };
+    return notesRepository.create(dto);
   }
 }
 
