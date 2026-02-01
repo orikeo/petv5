@@ -14,6 +14,10 @@ class NotesRepository {
 
     return note;
   }
+
+  async findAll() {
+    return db.select().from(notes);
+  }
 }
 
 export const notesRepository = new NotesRepository();

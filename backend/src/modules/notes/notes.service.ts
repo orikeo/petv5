@@ -5,6 +5,10 @@ class NotesService {
   create(dto: CreateNoteDto) {
     return notesRepository.create(dto);
   }
+
+  findAll() {
+    return notesRepository.findAll();
+  }
 }
 
 export const notesService = new NotesService();
