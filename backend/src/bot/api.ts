@@ -45,3 +45,28 @@ export const createNote = async (
     }
   );
 };
+
+export const getWeights = async (
+  token: string,
+  page: number,
+  limit = 5
+) => {
+  const res = await api.get(
+    `/weight?page=${page}&limit=${limit}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  return res.data as {
+    items: {
+      entryDate: string;
+      weight: string;
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+};

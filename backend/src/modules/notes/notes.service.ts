@@ -14,6 +14,10 @@ class NotesService {
   findWithFilters(userId: string, query: ParsedNotesQuery) {
     return notesRepository.findWithFilters(userId, query);
   }
+
+  findAll() {
+  return notesRepository.findAll();
+}
 }
 
 export const notesService = new NotesService();
