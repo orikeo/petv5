@@ -18,6 +18,25 @@ class NotesRepository {
     return note;
   }
 
+
+  async findById(id: string, userId: string) {
+  const [note] = await db
+    .select()
+    .from(notes)
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    );
+
+  return note;
+}
+
+  async findAll() {
+  return db.select().from(notes);
+}
+
   async findAllByUser(userId: string) {
     return db
       .select()

@@ -15,6 +15,10 @@ class NotesService {
     return notesRepository.findWithFilters(userId, query);
   }
 
+  findOne(id: string, userId: string) {
+  return notesRepository.findById(id, userId);
+}
+
   findAll() {
   return notesRepository.findAll();
 }

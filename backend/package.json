@@ -151,14 +151,13 @@
     "@types/node": "^25.1.0",
     "@types/node-telegram-bot-api": "^0.64.13",
     "@types/pg": "^8.16.0",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.8"
   },
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
-    "build": "tsc",
-    "start": "node dist/main.js",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "dev:server": "ts-node-dev src/main.ts",
+    "dev:bot": "ts-node-dev src/bot/bot.ts",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:bot\""
   },
   "keywords": [],
   "author": "",

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createNote, getNotes, getAllNotes } from './notes.controller';
+import { createNote, getNotes, getAllNotes, getNoteById } from './notes.controller';
 import { authGuard } from '../../middlewares/auth.middleware';
 import { requireRole } from '../../middlewares/role.middleware';
 import { UserRole } from '../auth/auth.roles';
@@ -25,4 +25,10 @@ notesRouter.get(
   authGuard,
   requireRole(UserRole.ADMIN, UserRole.OWNER),
   getAllNotes
+);
+
+notesRouter.get(
+  '/:id',
+  authGuard,
+  getNoteById
 );

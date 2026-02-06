@@ -53,3 +53,26 @@ export const getAllNotes = async (
   const notes = await notesService.findAll(); // без userId
   res.json(notes);
 };
+
+
+export const getNoteById = async (
+  req: Request<{ id: string }>,
+  res: Response
+) => {
+  if (!req.user) {
+    throw new Error('Unauthorized');
+  }
+
+  const note = await notesService.findOne(
+    req.params.id,
+    req.user.id
+  );
+
+  if (!note) {
+    return res.status(404).json({
+      message: 'Note not found'
+    });
+  }
+
+  res.json(note);
+};
