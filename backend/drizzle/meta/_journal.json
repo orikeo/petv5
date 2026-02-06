@@ -43,6 +43,13 @@
       "when": 1769989003328,
       "tag": "0005_lonely_dexter_bennett",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770371166995,
+      "tag": "0006_material_nighthawk",
+      "breakpoints": true
     }
   ]
 }

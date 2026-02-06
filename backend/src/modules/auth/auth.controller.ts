@@ -60,6 +60,35 @@ const accessToken = generateAccessToken({
   res.json({ accessToken });
 };
 
+export const getTelegramLinkCode = async (
+  req: Request<{}, {}, {}, {}>,
+  res: Response
+) => {
+  if (!req.user) {
+    throw new Error('Unauthorized');
+  }
+
+  const code = await authService.createTelegramLinkCode(
+    req.user.id
+  );
+
+  res.json({ code });
+};
+
+export const confirmTelegramLink = async (
+  req: Request<{}, {}, { code: string; telegramId: string }, {}>,
+  res: Response
+) => {
+  const { code, telegramId } = req.body;
+
+  await authService.linkTelegram(
+    code,
+    telegramId
+  );
+
+  res.json({ success: true });
+};
+
 export const logout = async (_req: Request, res: Response) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,

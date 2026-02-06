@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import TelegramBot from 'node-telegram-bot-api';
+import axios from 'axios';
 
 import { handleStart } from './handlers/start.handler';
 import { handleMessage } from './handlers/message.handler';
@@ -12,6 +13,21 @@ const bot = new TelegramBot(
 bot.onText(/\/start/, (msg) =>
   handleStart(bot, msg)
 );
+
+bot.onText(/\/link (.+)/, async (msg, match) => {
+  const code = match?.[1];
+  const telegramId = String(msg.from?.id);
+
+  await axios.post(
+    'http://localhost:3000/auth/telegram/link',
+    { code, telegramId }
+  );
+
+  bot.sendMessage(
+    msg.chat.id,
+    '✅ Telegram привязан'
+  );
+});
 
 bot.on('message', (msg) =>
   handleMessage(bot, msg)

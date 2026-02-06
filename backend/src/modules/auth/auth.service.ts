@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 import { authRepository } from './auth.repository';
 import { AppError } from '../../errors/app-error';
@@ -70,6 +71,26 @@ class AuthService {
   // -------------------------
   // TELEGRAM LOGIN
   // -------------------------
+
+  async linkTelegram(
+  code: string,
+  telegramId: string
+) {
+  const link =
+    await authRepository.findLinkCode(code);
+
+  if (!link) {
+    throw new AppError('Invalid code', 400);
+  }
+
+  await authRepository.attachTelegramToUser(
+    link.userId,
+    telegramId
+  );
+
+  await authRepository.deleteLinkCode(code);
+}
+
   async telegramLogin(dto: TelegramAuthDto) {
     let user = await authRepository.findByTelegramId(dto.telegramId);
 
@@ -86,6 +107,18 @@ class AuthService {
       accessToken: generateAccessToken(payload)
     };
   }
+
+  async createTelegramLinkCode(userId: string) {
+  const code = crypto.randomBytes(4)
+    .toString('hex');
+
+  await authRepository.saveTelegramLinkCode(
+    code,
+    userId
+  );
+
+  return code;
+}
 }
 
 export const authService = new AuthService();

@@ -157,7 +157,11 @@
   "scripts": {
     "dev": "ts-node-dev src/main.ts",
     "bot": "ts-node-dev src/bot/bot.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate"
   },
   "keywords": [],
   "author": "",

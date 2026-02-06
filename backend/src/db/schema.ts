@@ -50,3 +50,14 @@ export const weightEntries = pgTable('weight_entries', {
 
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
+
+export const telegramLinkCodes = pgTable(
+  'telegram_link_codes',
+  {
+    code: text('code').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at').notNull()
+  }
+);
