@@ -1,4 +1,5 @@
 import { app } from './app';
+import './types/express';
 
 const PORT = 3000;
 

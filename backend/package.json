@@ -155,9 +155,9 @@
     "drizzle-kit": "^0.31.8"
   },
   "scripts": {
-    "dev:server": "ts-node-dev src/main.ts",
-    "dev:bot": "ts-node-dev src/bot/bot.ts",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:bot\""
+    "dev": "ts-node-dev src/main.ts",
+    "bot": "ts-node-dev src/bot/bot.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
