@@ -70,3 +70,49 @@ export const getWeights = async (
     limit: number;
   };
 };
+
+export const getNotes = async (
+  token: string,
+  page: number,
+  limit = 5
+) => {
+  const res = await api.get(
+    `/notes?page=${page}&limit=${limit}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  return res.data as {
+    items: {
+      id: string;
+      title: string;
+      createdAt: string;
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+};
+
+export const getNoteById = async (
+  token: string,
+  id: string
+) => {
+  const res = await api.get(
+    `/notes/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  return res.data as {
+    id: string;
+    title: string;
+    content: string;
+  };
+};

@@ -20,3 +20,19 @@ export const weightNavKeyboard = (page: number) => ({
     ]
   }
 });
+
+export const notesNavKeyboard = (page: number) => ({
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: '⬅️', callback_data: `NOTES_PREV:${page}` },
+        { text: '➡️', callback_data: `NOTES_NEXT:${page}` }
+      ]
+    ]
+  }
+});
+
+export const noteItemButton = (id: string, title: string) => ({
+  text: title.slice(0, 30),
+  callback_data: `NOTE_OPEN:${id}`
+});

@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import TelegramBot from 'node-telegram-bot-api';
+import { getNotes, getNoteById } from './api';
+
 
 import {
   telegramAuth,
@@ -10,8 +12,11 @@ import {
 
 import {
   mainKeyboard,
-  weightNavKeyboard
+  weightNavKeyboard,
+  noteItemButton
 } from './commands';
+
+
 
 // --------------------
 
@@ -24,6 +29,7 @@ type Session = {
   token: string;
   mode?: 'weight' | 'note';
   weightPage?: number;
+  notesPage?: number;
 };
 
 const sessions = new Map<number, Session>();
@@ -41,6 +47,21 @@ const formatWeights = (
     '⚖️ Вес:\n\n' +
     items
       .map((w) => `${w.entryDate} — ${w.weight} кг`)
+      .join('\n')
+  );
+};
+
+const formatNotes = (
+  items: { id: string; title: string }[]
+) => {
+  if (items.length === 0) {
+    return 'Заметок пока нет';
+  }
+
+  return (
+    '📓 Заметки:\n\n' +
+    items
+      .map((n, i) => `${i + 1}️⃣ ${n.title}`)
       .join('\n')
   );
 };
@@ -108,6 +129,32 @@ bot.on('message', async (msg) => {
 
     return;
   }
+
+  if (text === '📓 Заметки') {
+  session.notesPage = 1;
+
+  const data = await getNotes(session.token, 1);
+
+  bot.sendMessage(
+    chatId,
+    formatNotes(data.items),
+    {
+      reply_markup: {
+        inline_keyboard: [
+          ...data.items.map((n) => [
+            noteItemButton(n.id, n.title)
+          ]),
+          [
+            { text: '⬅️', callback_data: 'NOTES_PREV:1' },
+            { text: '➡️', callback_data: 'NOTES_NEXT:1' }
+          ]
+        ]
+      }
+    }
+  );
+
+  return;
+}
 
   // -------- input --------
 
@@ -193,6 +240,77 @@ bot.on('callback_query', async (query) => {
       }
     );
   }
+
+  if (data.startsWith('NOTES_PREV')) {
+  const page = Math.max(
+    1,
+    Number(data.split(':')[1]) - 1
+  );
+
+  const res = await getNotes(session.token, page);
+
+  bot.editMessageText(
+    formatNotes(res.items),
+    {
+      chat_id: chatId,
+      message_id: query.message?.message_id,
+      reply_markup: {
+        inline_keyboard: [
+          ...res.items.map((n) => [
+            noteItemButton(n.id, n.title)
+          ]),
+          [
+            { text: '⬅️', callback_data: `NOTES_PREV:${page}` },
+            { text: '➡️', callback_data: `NOTES_NEXT:${page}` }
+          ]
+        ]
+      }
+    }
+  );
+}
+
+if (data.startsWith('NOTES_NEXT')) {
+  const page =
+    Number(data.split(':')[1]) + 1;
+
+  const res = await getNotes(session.token, page);
+
+  bot.editMessageText(
+    formatNotes(res.items),
+    {
+      chat_id: chatId,
+      message_id: query.message?.message_id,
+      reply_markup: {
+        inline_keyboard: [
+          ...res.items.map((n) => [
+            noteItemButton(n.id, n.title)
+          ]),
+          [
+            { text: '⬅️', callback_data: `NOTES_PREV:${page}` },
+            { text: '➡️', callback_data: `NOTES_NEXT:${page}` }
+          ]
+        ]
+      }
+    }
+  );
+}
+
+if (data.startsWith('NOTE_OPEN')) {
+  const id = data.split(':')[1];
+
+  const note = await getNoteById(
+    session.token,
+    id
+  );
+
+  bot.sendMessage(
+    chatId,
+    `📝 ${note.title}\n\n${note.content}`
+  );
+}
+
+
+
 });
 
 // --------------------
