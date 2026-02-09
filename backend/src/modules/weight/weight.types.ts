@@ -10,3 +10,13 @@ export interface WeightQueryDto {
   from?: string;
   to?: string;
 }
+
+export type WeightHistoryQueryDto = {
+  page?: number;
+  limit?: number;
+};
+
+export type WeightHistoryItem = {
+  date: string;   // YYYY-MM-DD
+  weight: number;
+};

@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
-import { CreateWeightDto, WeightQueryDto } from './weight.types';
+import { parseIntSafe } from '../../utils/parseIntSafe';
+import { CreateWeightDto, WeightQueryDto, WeightHistoryQueryDto } from './weight.types';
 import { validateCreateWeight } from './weight.validator';
 import { parseWeightQuery } from './weight.query';
 import { weightService } from './weight.service';
+
 
 export const createWeight = async (
   req: Request<{}, {}, CreateWeightDto>,
@@ -38,5 +40,30 @@ export const getWeights = async (
     page: query.page,
     limit: query.limit,
     total: result.total
+  });
+};
+
+
+export const getWeightHistory = async (
+  req: Request<{}, {}, {}, WeightHistoryQueryDto>,
+  res: Response
+) => {
+  if (!req.user) {
+    throw new Error('Unauthorized');
+  }
+
+  const page = parseIntSafe(req.query.page, 1);
+  const limit = parseIntSafe(req.query.limit, 5);
+
+  const items = await weightService.getHistory(
+    req.user.id,
+    page,
+    limit
+  );
+
+  res.json({
+    items,
+    page,
+    limit
   });
 };

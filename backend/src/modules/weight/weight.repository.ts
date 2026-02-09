@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { weightEntries } from '../../db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 import { ParsedWeightQuery } from './weight.query';
 
 class WeightRepository {
@@ -62,6 +62,28 @@ class WeightRepository {
       total: Number(count)
     };
   }
+
+  async getHistory(
+  userId: string,
+  page: number,
+  limit: number
+) {
+  const offset = (page - 1) * limit;
+
+  const items = await db
+    .select({
+      date: weightEntries.entryDate,
+      weight: weightEntries.weight
+    })
+    .from(weightEntries)
+    .where(eq(weightEntries.userId, userId))
+    .orderBy(desc(weightEntries.entryDate))
+    .limit(limit)
+    .offset(offset);
+
+  return items;
+}
+
 }
 
 export const weightRepository = new WeightRepository();

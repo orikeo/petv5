@@ -116,3 +116,18 @@ export const getNoteById = async (
     content: string;
   };
 };
+
+export const getWeightHistory = async (
+  token: string,
+  page: number,
+  limit: number
+) => {
+  const res = await api.get('/weights/history', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    params: { page, limit }
+  });
+
+  return res.data;
+};

@@ -14,6 +14,19 @@ class WeightService {
   findByUser(userId: string, query: ParsedWeightQuery) {
   return weightRepository.findByUser(userId, query);
 }
+
+async getHistory(
+  userId: string,
+  page: number,
+  limit: number
+) {
+  return weightRepository.getHistory(
+    userId,
+    page,
+    limit
+  );
+}
+
 }
 
 export const weightService = new WeightService();
