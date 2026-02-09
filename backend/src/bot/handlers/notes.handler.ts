@@ -3,6 +3,7 @@ import { Session } from '../sessions/session.types';
 
 import { createNote, getNotes, getNoteById } from '../api';
 import { noteItemButton } from '../keyboards/notes.keyboard';
+import { confirmKeyboard } from '../keyboards/confirm.keyboard';
 
 export const handleNotesMessage = async (
   bot: TelegramBot,
@@ -23,5 +24,13 @@ export const handleNotesMessage = async (
 
   session.mode = undefined;
 
-  bot.sendMessage(chatId, '📝 Заметка сохранена');
+  session.pendingNote = text;
+
+bot.sendMessage(
+  chatId,
+  `Заметка:\n${text}\n\nСохранить?`,
+  confirmKeyboard('note')
+);
+
+  
 };

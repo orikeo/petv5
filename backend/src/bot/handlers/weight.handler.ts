@@ -3,6 +3,8 @@ import { Session } from '../sessions/session.types';
 
 import { createWeight, getWeights } from '../api';
 import { weightNavKeyboard } from '../keyboards/weight.keyboard';
+import { confirmKeyboard } from '../keyboards/confirm.keyboard';
+
 
 export const handleWeightMessage = async (
   bot: TelegramBot,
@@ -30,5 +32,11 @@ export const handleWeightMessage = async (
 
   session.mode = undefined;
 
-  bot.sendMessage(chatId, '✅ Сохранено');
+  session.pendingWeight = weight;
+
+  bot.sendMessage(
+  chatId,
+  `Вес: ${weight} кг\nСохранить?`,
+  confirmKeyboard('weight')
+);
 };

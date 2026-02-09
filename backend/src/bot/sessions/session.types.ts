@@ -3,4 +3,6 @@ export type Session = {
   mode?: 'weight' | 'note';
   weightPage?: number;
   notesPage?: number;
+  pendingWeight?: number;
+pendingNote?: string;
 };

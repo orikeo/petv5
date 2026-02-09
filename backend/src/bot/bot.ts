@@ -4,6 +4,7 @@ import axios from 'axios';
 
 import { handleStart } from './handlers/start.handler';
 import { handleMessage } from './handlers/message.handler';
+import { handleCallback } from './handlers/callback.handler';
 
 const bot = new TelegramBot(
   process.env.TG_BOT_TOKEN!,
@@ -31,6 +32,10 @@ bot.onText(/\/link (.+)/, async (msg, match) => {
 
 bot.on('message', (msg) =>
   handleMessage(bot, msg)
+);
+
+bot.on('callback_query', (query) =>
+  handleCallback(bot, query)
 );
 
 console.log('🤖 Telegram bot started');
