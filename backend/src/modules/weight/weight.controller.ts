@@ -67,3 +67,18 @@ export const getWeightHistory = async (
     limit
   });
 };
+
+export const getWeightChart = async (
+  req: Request,
+  res: Response
+) => {
+  if (!req.user) {
+    throw new Error('Unauthorized');
+  }
+
+  const data = await weightService.getChartData(
+    req.user.id
+  );
+
+  res.json(data);
+};

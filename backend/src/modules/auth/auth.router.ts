@@ -16,6 +16,6 @@ authRouter.post(
   getTelegramLinkCode
 );
 authRouter.post(
-  '/telegram/link',
+  '/telegram/confirm',
   confirmTelegramLink
 );

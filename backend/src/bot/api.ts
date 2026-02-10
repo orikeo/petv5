@@ -20,7 +20,7 @@ export const createWeight = async (
   note?: string
 ) => {
   await api.post(
-    '/weight',
+    '/weights',
     { entryDate, weight, note },
     {
       headers: {
@@ -52,7 +52,7 @@ export const getWeights = async (
   limit = 5
 ) => {
   const res = await api.get(
-    `/weight?page=${page}&limit=${limit}`,
+    `/weights?page=${page}&limit=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${token}`
@@ -127,6 +127,18 @@ export const getWeightHistory = async (
       Authorization: `Bearer ${token}`
     },
     params: { page, limit }
+  });
+
+  return res.data;
+};
+
+export const confirmTelegramLink = async (
+  code: string,
+  telegramId: string
+) => {
+  const res = await api.post('/auth/telegram/confirm', {
+    code,
+    telegramId
   });
 
   return res.data;

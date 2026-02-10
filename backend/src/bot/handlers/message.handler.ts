@@ -3,7 +3,7 @@ import { handleWeightMessage } from './weight.handler';
 import { handleNotesMessage } from './notes.handler';
 import TelegramBot from 'node-telegram-bot-api';
 import { WeightHistoryItem } from '../../modules/weight/weight.types';
-import { getWeightHistory } from '../api';
+import { getWeightHistory, confirmTelegramLink } from '../api';
 
 export const handleMessage = async ( 
   bot: TelegramBot,
@@ -16,6 +16,34 @@ export const handleMessage = async (
 
   const session = sessions.get(chatId);
   if (!session) return;
+
+  if (text?.startsWith('LINK ')) {
+  const rawCode = text.split(' ')[1];
+  const code = rawCode?.trim();
+
+  console.log('--- TELEGRAM LINK COMMAND ---');
+  console.log('RAW TEXT:', JSON.stringify(text));
+  console.log('RAW CODE:', JSON.stringify(rawCode));
+  console.log('TRIMMED CODE:', JSON.stringify(code));
+
+  try {
+    await confirmTelegramLink(
+      code!,
+      String(msg.from?.id)
+    );
+
+    return bot.sendMessage(
+      chatId,
+      '✅ Аккаунт успешно привязан'
+    );
+  } catch (e) {
+    console.error('LINK ERROR:', e);
+    return bot.sendMessage(
+      chatId,
+      '❌ Неверный или просроченный код'
+    );
+  }
+}
 
   if (text === '➕ Вес' || session.mode === 'weight') {
     return handleWeightMessage(bot, msg, session);
@@ -33,17 +61,22 @@ export const handleMessage = async (
   );
 
   if (history.items.length === 0) {
-    return bot.sendMessage(chatId, 'История пуста');
+    return bot.sendMessage(
+      chatId,
+      'История пока пустая'
+    );
   }
 
-  const message = history.items.map((i: WeightHistoryItem) =>
-  `${i.date} — ${i.weight}`
-)
+  const message = history.items
+    .map(
+      (i: { date: string; weight: number }) =>
+        `${i.date} — ${i.weight} кг`
+    )
     .join('\n');
 
   return bot.sendMessage(
     chatId,
-    `📊 Последние веса:\n${message}`
+    `📊 Последние измерения:\n\n${message}`
   );
 }
 };

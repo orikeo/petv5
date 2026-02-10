@@ -72,19 +72,40 @@ class AuthService {
   // TELEGRAM LOGIN
   // -------------------------
 
-  async linkTelegram(
-  code: string,
-  telegramId: string
-) {
-  const link =
+  async linkTelegram(code: string, telegramId: string) {
+  const record =
     await authRepository.findLinkCode(code);
 
-  if (!link) {
-    throw new AppError('Invalid code', 400);
+  if (!record) {
+    throw new Error('Invalid or expired code');
+  }
+
+  const siteUserId = record.userId;
+
+  const telegramUser =
+    await authRepository.findUserByTelegramId(
+      telegramId
+    );
+
+  if (telegramUser) {
+    // MERGE
+    await authRepository.moveNotes(
+      telegramUser.id,
+      siteUserId
+    );
+
+    await authRepository.moveWeights(
+      telegramUser.id,
+      siteUserId
+    );
+
+    await authRepository.deleteUser(
+      telegramUser.id
+    );
   }
 
   await authRepository.attachTelegramToUser(
-    link.userId,
+    siteUserId,
     telegramId
   );
 

@@ -50,6 +50,13 @@
       "when": 1770371166995,
       "tag": "0006_material_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770603382793,
+      "tag": "0007_lonely_madame_hydra",
+      "breakpoints": true
     }
   ]
 }

@@ -76,17 +76,23 @@ export const getTelegramLinkCode = async (
 };
 
 export const confirmTelegramLink = async (
-  req: Request<{}, {}, { code: string; telegramId: string }, {}>,
+  req: Request,
   res: Response
 ) => {
   const { code, telegramId } = req.body;
 
-  await authService.linkTelegram(
-    code,
-    telegramId
-  );
+  try {
+    await authService.linkTelegram(
+      code,
+      telegramId
+    );
 
-  res.json({ success: true });
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(400).json({
+      message: e.message
+    });
+  }
 };
 
 export const logout = async (_req: Request, res: Response) => {

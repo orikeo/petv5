@@ -1,6 +1,6 @@
 import { db } from '../../db';
-import { users, telegramLinkCodes } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { users, telegramLinkCodes, notes, weightEntries } from '../../db/schema';
+import { eq, and, gt } from 'drizzle-orm';
 
 class AuthRepository {
   async findByEmail(email: string) {
@@ -57,10 +57,31 @@ async saveTelegramLinkCode(
 }
 
 async findLinkCode(code: string) {
+  console.log('--- FIND LINK CODE START ---');
+  console.log('CODE FROM REQUEST:', JSON.stringify(code));
+  console.log('NODE NOW:', new Date().toISOString());
+
+  const all = await db.select().from(telegramLinkCodes);
+  console.log(
+    'ALL CODES IN DB:',
+    all.map(r => ({
+      code: JSON.stringify(r.code),
+      expiresAt: r.expiresAt
+    }))
+  );
+
   const [row] = await db
     .select()
     .from(telegramLinkCodes)
-    .where(eq(telegramLinkCodes.code, code));
+    .where(
+      and(
+        eq(telegramLinkCodes.code, code),
+        gt(telegramLinkCodes.expiresAt, new Date())
+      )
+    );
+
+  console.log('FOUND ROW:', row);
+  console.log('--- FIND LINK CODE END ---');
 
   return row;
 }
@@ -79,6 +100,35 @@ async deleteLinkCode(code: string) {
   await db
     .delete(telegramLinkCodes)
     .where(eq(telegramLinkCodes.code, code));
+}
+
+async findUserByTelegramId(telegramId: string) {
+  const [row] = await db
+    .select()
+    .from(users)
+    .where(eq(users.telegramId, telegramId));
+
+  return row;
+}
+
+async moveNotes(fromUserId: string, toUserId: string) {
+  await db
+    .update(notes)
+    .set({ userId: toUserId })
+    .where(eq(notes.userId, fromUserId));
+}
+
+async moveWeights(fromUserId: string, toUserId: string) {
+  await db
+    .update(weightEntries)
+    .set({ userId: toUserId })
+    .where(eq(weightEntries.userId, fromUserId));
+}
+
+async deleteUser(userId: string) {
+  await db
+    .delete(users)
+    .where(eq(users.id, userId));
 }
 
 }

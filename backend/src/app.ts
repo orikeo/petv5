@@ -11,7 +11,7 @@ app.use(cookieParser());
 
 app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
-app.use('/weight', weightRouter);
+app.use('/weights', weightRouter);
 
 // ⬇️ ВСЕГДА в самом конце
 app.use(errorMiddleware);

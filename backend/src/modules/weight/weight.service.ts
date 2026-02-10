@@ -27,6 +27,10 @@ async getHistory(
   );
 }
 
+async getChartData(userId: string) {
+  return weightRepository.getChartData(userId);
+}
+
 }
 
 export const weightService = new WeightService();

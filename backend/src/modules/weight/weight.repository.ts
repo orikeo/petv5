@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { weightEntries } from '../../db/schema';
-import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
 import { ParsedWeightQuery } from './weight.query';
 
 class WeightRepository {
@@ -82,6 +82,22 @@ class WeightRepository {
     .offset(offset);
 
   return items;
+}
+
+
+
+async getChartData(userId: string) {
+  const result = await db
+    .select({
+      date: weightEntries.entryDate,
+      weight: sql<number>`AVG(${weightEntries.weight})`
+    })
+    .from(weightEntries)
+    .where(eq(weightEntries.userId, userId))
+    .groupBy(weightEntries.entryDate)
+    .orderBy(asc(weightEntries.entryDate));
+
+  return result;
 }
 
 }
