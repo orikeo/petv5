@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@faker-js/faker": "^10.3.0",
     "accepts": "^2.0.0",
     "acorn": "^8.15.0",
     "acorn-walk": "^8.3.4",
@@ -158,7 +159,6 @@
     "dev": "ts-node-dev src/main.ts",
     "bot": "ts-node-dev src/bot/bot.ts",
     "typecheck": "tsc --noEmit",
-
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate"
