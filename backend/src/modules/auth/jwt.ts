@@ -36,3 +36,18 @@ export const verifyAccessToken = (token: string): JwtPayload => {
 export const verifyRefreshToken = (token: string): JwtPayload => {
   return jwt.verify(token, env.jwtRefreshSecret) as JwtPayload;
 };
+
+export const generateTokens = (
+  payload: JwtPayload
+) => {
+  const accessToken =
+    generateAccessToken(payload);
+
+  const refreshToken =
+    generateRefreshToken(payload);
+
+  return {
+    accessToken,
+    refreshToken
+  };
+};

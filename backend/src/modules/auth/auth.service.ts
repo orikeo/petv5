@@ -6,7 +6,8 @@ import { AppError } from '../../errors/app-error';
 
 import {
   generateAccessToken,
-  generateRefreshToken
+  generateRefreshToken,
+  generateTokens
 } from './jwt';
 
 import {
@@ -14,6 +15,8 @@ import {
   LoginDto,
   TelegramAuthDto
 } from './auth.types';
+
+console.log('AUTH SERVICE LOADED');
 
 class AuthService {
   // -------------------------
@@ -128,6 +131,27 @@ class AuthService {
       accessToken: generateAccessToken(payload)
     };
   }
+
+  async loginWithTelegram(telegramId: string) {
+  const user =
+    await authRepository.findUserByTelegramId(
+      telegramId
+    );
+
+  if (!user) {
+    throw new Error('Telegram not linked');
+  }
+
+  const tokens = generateTokens({
+    userId: user.id,
+    role: user.role
+  });
+
+  return tokens;
+}
+
+
+
 
   async createTelegramLinkCode(userId: string) {
   const code = crypto.randomBytes(4)

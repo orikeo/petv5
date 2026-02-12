@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authGuard } from '../../middlewares/auth.middleware';
 import { register, login, refresh, logout, telegramAuth, getTelegramLinkCode,
-  confirmTelegramLink } from './auth.controller';
+  confirmTelegramLink, telegramLogin  } from './auth.controller';
 
 export const authRouter = Router();
 
@@ -18,4 +18,8 @@ authRouter.post(
 authRouter.post(
   '/telegram/confirm',
   confirmTelegramLink
+);
+authRouter.post(
+  '/telegram/login',
+  telegramLogin
 );

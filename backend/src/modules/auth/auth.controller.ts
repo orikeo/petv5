@@ -104,3 +104,23 @@ export const logout = async (_req: Request, res: Response) => {
 
   res.status(204).send();
 };
+
+export const telegramLogin = async (
+  req: Request,
+  res: Response
+) => {
+  const { telegramId } = req.body;
+
+  try {
+    const tokens =
+      await authService.loginWithTelegram(
+        telegramId
+      );
+
+    res.json(tokens);
+  } catch (e: any) {
+    res.status(400).json({
+      message: e.message
+    });
+  }
+};
