@@ -6,10 +6,13 @@ export const handleCallback = async (
   bot: TelegramBot,
   query: TelegramBot.CallbackQuery
 ) => {
-  const chatId = query.message?.chat.id;
-  if (!chatId) return;
+ const chatId = query.message?.chat.id;
+if (!chatId) return;
 
-  const session = sessions.get(chatId);
+const telegramId = String(query.from?.id);
+if (!telegramId) return;
+
+const session = sessions.get(telegramId);
   if (!session) return;
 
   const data = query.data || '';

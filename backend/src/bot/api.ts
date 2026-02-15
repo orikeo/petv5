@@ -5,12 +5,20 @@ const api = axios.create({
   timeout: 5000
 });
 
-export const telegramAuth = async (telegramId: string) => {
-  const res = await api.post('/auth/telegram', {
-    telegramId
-  });
 
-  return res.data.accessToken as string;
+
+export const telegramLogin = async (
+  telegramId: string
+) => {
+  const res = await api.post(
+    '/auth/telegram/login',
+    { telegramId }
+  );
+
+  return res.data as {
+    accessToken: string;
+    refreshToken: string;
+  };
 };
 
 export const createWeight = async (
@@ -76,6 +84,7 @@ export const getNotes = async (
   page: number,
   limit = 5
 ) => {
+  console.log('BOT -> GET /notes');
   const res = await api.get(
     `/notes?page=${page}&limit=${limit}`,
     {

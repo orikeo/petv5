@@ -16,7 +16,6 @@ import {
   TelegramAuthDto
 } from './auth.types';
 
-console.log('AUTH SERVICE LOADED');
 
 class AuthService {
   // -------------------------

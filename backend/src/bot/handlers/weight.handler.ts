@@ -1,10 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { Session } from '../sessions/session.types';
 
-import { createWeight, getWeights } from '../api';
-import { weightNavKeyboard } from '../keyboards/weight.keyboard';
 import { confirmKeyboard } from '../keyboards/confirm.keyboard';
-
 
 export const handleWeightMessage = async (
   bot: TelegramBot,
@@ -16,27 +13,28 @@ export const handleWeightMessage = async (
 
   if (text === '➕ Вес') {
     session.mode = 'weight';
-    return bot.sendMessage(chatId, 'Введи вес');
+    return bot.sendMessage(
+      chatId,
+      'Введи вес'
+    );
   }
 
   const weight = Number(text);
+
   if (Number.isNaN(weight)) {
-    return bot.sendMessage(chatId, 'Это не число');
+    return bot.sendMessage(
+      chatId,
+      'Это не число'
+    );
   }
 
-  await createWeight(
-    session.token,
-    new Date().toISOString().slice(0, 10),
-    weight
-  );
-
+  // ✅ только кладём в сессию
+  session.pendingWeight = weight;
   session.mode = undefined;
 
-  session.pendingWeight = weight;
-
-  bot.sendMessage(
-  chatId,
-  `Вес: ${weight} кг\nСохранить?`,
-  confirmKeyboard('weight')
-);
+  return bot.sendMessage(
+    chatId,
+    `Вес: ${weight} кг\nСохранить?`,
+    confirmKeyboard('weight')
+  );
 };
