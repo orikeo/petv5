@@ -4,6 +4,7 @@ import { handleNotesMessage } from './notes.handler';
 import TelegramBot from 'node-telegram-bot-api';
 import { getWeightHistory, confirmTelegramLink, getNotes, getNoteById } from '../api';
 import { telegramLogin } from '../api';
+import { BUTTONS } from '../constants/buttons';
 
 
 export const handleMessage = async (
@@ -56,7 +57,7 @@ export const handleMessage = async (
   // ------------------------
   // ИСТОРИЯ ВЕСА
   // ------------------------
-  if (text === '📊 История') {
+  if (text === BUTTONS.WEIGHT_HISTORY) {
     const history = await getWeightHistory(
       session.token,
       1,
@@ -86,7 +87,7 @@ export const handleMessage = async (
   // ------------------------
   // МОИ ЗАМЕТКИ (СПИСОК)
   // ------------------------
-  if (text === '📓 Заметки') {
+  if (text === BUTTONS.NOTES_LIST) {
     try {
       const notes = await getNotes(
         session.token,
@@ -161,14 +162,14 @@ export const handleMessage = async (
   // ------------------------
   // ВВОД ВЕСА
   // ------------------------
-  if (text === '➕ Вес' || session.mode === 'weight') {
+  if (text === BUTTONS.WEIGHT_ADD || session.mode === 'weight') {
     return handleWeightMessage(bot, msg, session);
   }
 
   // ------------------------
   // ВВОД ЗАМЕТКИ
   // ------------------------
-  if (text === '📝 Заметка' || session.mode === 'note') {
+  if (text === BUTTONS.NOTE_ADD || session.mode === 'note') {
     return handleNotesMessage(bot, msg, session);
   }
 };

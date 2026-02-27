@@ -9,4 +9,6 @@ pendingNote?: string;
     id: string;
     title: string;
   }[];
+  
+notesTotal?: number;
 };
