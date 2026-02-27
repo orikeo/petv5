@@ -6,7 +6,7 @@ import { handleStart } from './handlers/start.handler';
 import { handleMessage } from './handlers/message.handler';
 import { handleCallback } from './handlers/callback.handler';
 
-const bot = new TelegramBot(
+ export const bot = new TelegramBot(
   process.env.TG_BOT_TOKEN!,
   { polling: true }
 );

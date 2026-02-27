@@ -156,16 +156,21 @@
     "drizzle-kit": "^0.31.8"
   },
   "scripts": {
-     "build": "tsc",
-    "start": "node dist/main.js",
-    "dev": "ts-node-dev src/main.ts",
-    "bot": "ts-node-dev src/bot/bot.ts",
-    "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:migrate": "drizzle-kit migrate"
-    
-  },
+  "build": "tsc",
+
+  "start:server": "node dist/main.js",
+  "start:bot": "node dist/bot/bot.js",
+
+  "start": "concurrently \"npm run start:server\" \"npm run start:bot\"",
+
+  "dev": "ts-node-dev src/main.ts",
+  "dev:bot": "ts-node-dev src/bot/bot.ts",
+
+  "typecheck": "tsc --noEmit",
+  "db:generate": "drizzle-kit generate",
+  "db:push": "drizzle-kit push",
+  "db:migrate": "drizzle-kit migrate"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
