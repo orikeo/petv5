@@ -126,8 +126,11 @@ export const telegramLogin = async (
     return res.json(result);
 
   } catch (e: any) {
-    return res.status(400).json({
-      message: e.message || 'Login failed'
-    });
-  }
+  console.error('TELEGRAM LOGIN ERROR:', e);
+
+  return res.status(400).json({
+    message: e.message,
+    stack: e.stack
+  });
+}
 };
