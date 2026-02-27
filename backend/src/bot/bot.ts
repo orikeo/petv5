@@ -13,9 +13,18 @@ const BASE_URL = process.env.BASE_URL!
   { polling: true }
 );
 
-bot.onText(/\/start/, (msg) =>
-  handleStart(bot, msg)
-);
+bot.onText(/\/start/, async (msg) => {
+  try {
+    await handleStart(bot, msg);
+  } catch (error: any) {
+    console.error('START ERROR:', error.response?.data || error.message);
+
+    await bot.sendMessage(
+      msg.chat.id,
+      '❌ Ошибка при старте'
+    );
+  }
+});
 
 bot.onText(/\/link (.+)/, async (msg, match) => {
   try {
@@ -44,9 +53,11 @@ bot.onText(/\/link (.+)/, async (msg, match) => {
   }
 });
 
-bot.on('message', (msg) =>
-  handleMessage(bot, msg)
-);
+bot.on('message', async (msg) => {
+  if (msg.text?.startsWith('/')) return; // игнорируем команды
+
+  await handleMessage(bot, msg);
+});
 
 bot.on('callback_query', (query) =>
   handleCallback(bot, query)
