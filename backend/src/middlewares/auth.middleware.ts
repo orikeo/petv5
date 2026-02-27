@@ -16,7 +16,7 @@ export const authGuard = (
 
   const token = authHeader.split(' ')[1];
   const payload = verifyAccessToken(token);
-  console.log('JWT PAYLOAD:', payload);
+  
 
   req.user = {
     id: payload.userId,

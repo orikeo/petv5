@@ -85,7 +85,7 @@ export const getNotes = async (
   page: number,
   limit = 5
 ) => {
-  console.log('BOT -> GET /notes');
+  
   const res = await api.get(
     `/notes?page=${page}&limit=${limit}`,
     {

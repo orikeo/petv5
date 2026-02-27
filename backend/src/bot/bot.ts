@@ -27,7 +27,7 @@ bot.onText(/\/link (.+)/, async (msg, match) => {
       { code, telegramId }
     );
 
-    console.log('API response:', response.data);
+    
 
     await bot.sendMessage(
       msg.chat.id,

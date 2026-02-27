@@ -27,7 +27,7 @@ export const getNotes = async (
   req: Request<{}, {}, {}, NotesQueryDto>,
   res: Response
 ) => {
-  console.log('REQ USER ID:', req.user?.id);
+  
   if (!req.user) {
     throw new Error('Unauthorized');
   }

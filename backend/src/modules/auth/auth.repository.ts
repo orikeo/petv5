@@ -57,19 +57,10 @@ async saveTelegramLinkCode(
 }
 
 async findLinkCode(code: string) {
-  console.log('--- FIND LINK CODE START ---');
-  console.log('CODE FROM REQUEST:', JSON.stringify(code));
-  console.log('NODE NOW:', new Date().toISOString());
+  
 
   const all = await db.select().from(telegramLinkCodes);
-  console.log(
-    'ALL CODES IN DB:',
-    all.map(r => ({
-      code: JSON.stringify(r.code),
-      expiresAt: r.expiresAt
-    }))
-  );
-
+ 
   const [row] = await db
     .select()
     .from(telegramLinkCodes)
@@ -80,8 +71,7 @@ async findLinkCode(code: string) {
       )
     );
 
-  console.log('FOUND ROW:', row);
-  console.log('--- FIND LINK CODE END ---');
+  
 
   return row;
 }

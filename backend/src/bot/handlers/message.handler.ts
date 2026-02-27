@@ -11,7 +11,7 @@ export const handleMessage = async (
   bot: TelegramBot,
   msg: TelegramBot.Message
 ) => {
-  console.log('BOT MESSAGE:', msg.text);
+  
 
   const telegramId = String(msg.from?.id);
   if (!telegramId) return;
@@ -95,7 +95,7 @@ export const handleMessage = async (
         5
       );
 
-      console.log('NOTES RESPONSE:', notes);
+      
 
       if (notes.items.length === 0) {
         return bot.sendMessage(
