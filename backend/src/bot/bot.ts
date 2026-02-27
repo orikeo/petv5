@@ -6,7 +6,9 @@ import { handleStart } from './handlers/start.handler';
 import { handleMessage } from './handlers/message.handler';
 import { handleCallback } from './handlers/callback.handler';
 
- export const bot = new TelegramBot(
+const BASE_URL = process.env.BASE_URL!
+
+ const bot = new TelegramBot(
   process.env.TG_BOT_TOKEN!,
   { polling: true }
 );
@@ -20,7 +22,7 @@ bot.onText(/\/link (.+)/, async (msg, match) => {
   const telegramId = String(msg.from?.id);
 
   await axios.post(
-    'http://localhost:3000/auth/telegram/link',
+    `${BASE_URL}/auth/telegram/link`,
     { code, telegramId }
   );
 
