@@ -18,18 +18,30 @@ bot.onText(/\/start/, (msg) =>
 );
 
 bot.onText(/\/link (.+)/, async (msg, match) => {
-  const code = match?.[1];
-  const telegramId = String(msg.from?.id);
+  try {
+    const code = match?.[1];
+    const telegramId = String(msg.from?.id);
 
-  await axios.post(
-    `${BASE_URL}/auth/telegram/link`,
-    { code, telegramId }
-  );
+    const response = await axios.post(
+      `${BASE_URL}/auth/telegram/link`,
+      { code, telegramId }
+    );
 
-  bot.sendMessage(
-    msg.chat.id,
-    '✅ Telegram привязан'
-  );
+    console.log('API response:', response.data);
+
+    await bot.sendMessage(
+      msg.chat.id,
+      '✅ Telegram привязан'
+    );
+
+  } catch (error: any) {
+    console.error('LINK ERROR:', error.response?.data || error.message);
+
+    await bot.sendMessage(
+      msg.chat.id,
+      '❌ Ошибка привязки'
+    );
+  }
 });
 
 bot.on('message', (msg) =>
