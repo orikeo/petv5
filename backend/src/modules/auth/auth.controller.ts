@@ -111,16 +111,23 @@ export const telegramLogin = async (
 ) => {
   const { telegramId } = req.body;
 
+  if (!telegramId) {
+    return res.status(400).json({
+      message: 'telegramId is required'
+    });
+  }
+
   try {
-    const tokens =
+    const result =
       await authService.loginWithTelegram(
         telegramId
       );
 
-    res.json(tokens);
+    return res.json(result);
+
   } catch (e: any) {
-    res.status(400).json({
-      message: e.message
+    return res.status(400).json({
+      message: e.message || 'Login failed'
     });
   }
 };

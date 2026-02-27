@@ -132,13 +132,20 @@ class AuthService {
   }
 
   async loginWithTelegram(telegramId: string) {
-  const user =
-    await authRepository.findUserByTelegramId(
-      telegramId
-    );
+  if (!telegramId) {
+    throw new Error('Telegram ID is required');
+  }
+
+  let user =
+    await authRepository.findUserByTelegramId(telegramId);
+
+  let isNewUser = false;
 
   if (!user) {
-    throw new Error('Telegram not linked');
+    user =
+      await authRepository.createTelegramUser(telegramId);
+
+    isNewUser = true;
   }
 
   const tokens = generateTokens({
@@ -146,7 +153,10 @@ class AuthService {
     role: user.role
   });
 
-  return tokens;
+  return {
+    ...tokens,
+    isNewUser
+  };
 }
 
 
