@@ -9,12 +9,20 @@ export const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+app.get('/', (_, res) => {
+  res.send('Bot is running');
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log('Server started');
 });
 
 app.use('/auth', authRouter);
