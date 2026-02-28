@@ -4,15 +4,10 @@ import { weightRouter } from './modules/weight/weight.router';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { authRouter } from './modules/auth/auth.router';
 import cookieParser from 'cookie-parser';
-import { webhookCallback } from "grammy";
-
-import { bot } from "./botgrammy/bot";
-
 export const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.use("/webhook", webhookCallback(bot, "express"));
 
 app.get('/', (_, res) => {
   res.send('Bot is running');
