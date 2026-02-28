@@ -57,6 +57,7 @@
     "glob": "^7.2.3",
     "glob-parent": "^5.1.2",
     "gopd": "^1.2.0",
+    "grammy": "^1.40.1",
     "has-symbols": "^1.1.0",
     "hasown": "^2.0.2",
     "http-errors": "^2.0.1",
@@ -82,7 +83,7 @@
     "mkdirp": "^1.0.4",
     "ms": "^2.1.3",
     "negotiator": "^1.0.0",
-    "node-telegram-bot-api": "^0.67.0",
+    "node-telegram-bot-api": "^0.63.0",
     "normalize-path": "^3.0.0",
     "object-inspect": "^1.13.4",
     "on-finished": "^2.4.1",
@@ -153,24 +154,20 @@
     "@types/node-telegram-bot-api": "^0.64.13",
     "@types/pg": "^8.16.0",
     "concurrently": "^9.2.1",
-    "drizzle-kit": "^0.31.8"
+    "drizzle-kit": "^0.18.1"
   },
   "scripts": {
-  "build": "tsc",
-
-  "start:server": "node dist/main.js",
-  "start:bot": "node dist/bot/bot.js",
-
-  "start": "concurrently \"npm run start:server\" \"npm run start:bot\"",
-
-  "dev": "ts-node-dev src/main.ts",
-  "dev:bot": "ts-node-dev src/bot/bot.ts",
-
-  "typecheck": "tsc --noEmit",
-  "db:generate": "drizzle-kit generate",
-  "db:push": "drizzle-kit push",
-  "db:migrate": "drizzle-kit migrate"
-},
+    "build": "tsc",
+    "start:server": "node dist/main.js",
+    "start:bot": "node dist/bot/bot.js",
+    "start": "concurrently \"npm run start:server\" \"npm run start:bot\"",
+    "dev": "ts-node-dev src/main.ts",
+    "dev:bot": "ts-node-dev src/bot/bot.ts",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
