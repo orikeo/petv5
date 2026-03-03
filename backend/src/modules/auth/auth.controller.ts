@@ -22,13 +22,18 @@ export const login = async (
   const { accessToken, refreshToken } =
     await authService.login(req.body);
 
+  // 🍪 Для web
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     sameSite: 'strict',
-    secure: false // потом true для https
+    secure: false, // true в production при https
   });
 
-  res.json({ accessToken });
+  // 📱 Для mobile
+  res.json({
+    accessToken,
+    refreshToken,
+  });
 };
 
 export const telegramAuth = async (
@@ -44,7 +49,10 @@ export const telegramAuth = async (
 };
 
 export const refresh = async (req: Request, res: Response) => {
-  const token = req.cookies?.refreshToken;
+  // 🔄 Берём refreshToken либо из cookie, либо из body
+  const token =
+    req.cookies?.refreshToken ||
+    req.body?.refreshToken;
 
   if (!token) {
     throw new AppError('No refresh token', 401);
@@ -52,10 +60,10 @@ export const refresh = async (req: Request, res: Response) => {
 
   const payload = verifyRefreshToken(token);
 
-const accessToken = generateAccessToken({
-  userId: payload.userId,
-  role: payload.role
-});
+  const accessToken = generateAccessToken({
+    userId: payload.userId,
+    role: payload.role,
+  });
 
   res.json({ accessToken });
 };
