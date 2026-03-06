@@ -15,6 +15,16 @@ class WeightService {
   return weightRepository.findByUser(userId, query);
 }
 
+async delete(
+  userId: string,
+  weightId: string
+) {
+  return weightRepository.delete(
+    userId,
+    weightId
+  );
+}
+
 async getHistory(
   userId: string,
   page: number,

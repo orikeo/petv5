@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createWeight, getWeights, getWeightHistory, getWeightChart } from './weight.controller';
+import { createWeight, getWeights, getWeightHistory, getWeightChart, deleteWeight } from './weight.controller';
 import { authGuard } from '../../middlewares/auth.middleware';
 
 export const weightRouter = Router();
@@ -15,4 +15,9 @@ weightRouter.get(
   '/chart',
   authGuard,
   getWeightChart
+);
+weightRouter.delete(
+  '/:id',
+  authGuard,
+  deleteWeight
 );

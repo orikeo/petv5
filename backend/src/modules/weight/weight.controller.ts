@@ -43,6 +43,27 @@ export const getWeights = async (
   });
 };
 
+export const deleteWeight = async (
+  req: Request<{ id: string }>,
+  res: Response
+) => {
+
+  if (!req.user) {
+    throw new Error('Unauthorized');
+  }
+
+  const { id } = req.params;
+
+  await weightService.delete(
+    req.user.id,
+    id
+  );
+
+  res.json({
+    success: true
+  });
+};
+
 
 export const getWeightHistory = async (
   req: Request<{}, {}, {}, WeightHistoryQueryDto>,

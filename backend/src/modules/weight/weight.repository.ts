@@ -24,6 +24,24 @@ class WeightRepository {
 
   return entry;
 }
+
+async delete(
+  userId: string,
+  weightId: string
+) {
+
+  const [deleted] = await db
+    .delete(weightEntries)
+    .where(
+      and(
+        eq(weightEntries.id, weightId),
+        eq(weightEntries.userId, userId)
+      )
+    )
+    .returning();
+
+  return deleted;
+}
   async findByUser(
     userId: string,
     query: ParsedWeightQuery
