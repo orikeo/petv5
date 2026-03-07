@@ -158,10 +158,8 @@
   "scripts": {
     "build": "tsc",
     "start:server": "node dist/main.js",
-    "start:bot": "node dist/bot/bot.js",
-    "start": "concurrently \"npm run start:server\" \"npm run start:bot\"",
+    "start": "npm run start:server",
     "dev": "ts-node-dev src/main.ts",
-    "dev:bot": "ts-node-dev src/bot/bot.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
