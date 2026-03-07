@@ -3,7 +3,20 @@ import { Pool } from 'pg';
 import { env } from '../config/env';
 
 const pool = new Pool({
-  connectionString: env.databaseUrl
-});
+  connectionString: process.env.DATABASE_URL,
 
-export const db = drizzle(pool);
+  // максимальное количество соединений
+  max: 10,
+
+  // сколько ждать соединение
+  connectionTimeoutMillis: 5000,
+
+  // сколько держать idle соединение
+  idleTimeoutMillis: 30000,
+
+  ssl: {
+    rejectUnauthorized: false
+  }
+})
+
+export const db = drizzle(pool)
