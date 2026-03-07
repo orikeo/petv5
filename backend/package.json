@@ -153,24 +153,20 @@
     "@types/node-telegram-bot-api": "^0.64.13",
     "@types/pg": "^8.16.0",
     "concurrently": "^9.2.1",
-    "drizzle-kit": "^0.31.8"
+    "drizzle-kit": "^0.31.9"
   },
   "scripts": {
-  "build": "tsc",
-
-  "start:server": "node dist/main.js",
-  "start:bot": "node dist/bot/bot.js",
-
-  "start": "concurrently \"npm run start:server\" \"npm run start:bot\"",
-
-  "dev": "ts-node-dev src/main.ts",
-  "dev:bot": "ts-node-dev src/bot/bot.ts",
-
-  "typecheck": "tsc --noEmit",
-  "db:generate": "drizzle-kit generate",
-  "db:push": "drizzle-kit push",
-  "db:migrate": "drizzle-kit migrate"
-},
+    "build": "tsc",
+    "start:server": "node dist/main.js",
+    "start:bot": "node dist/bot/bot.js",
+    "start": "concurrently \"npm run start:server\" \"npm run start:bot\"",
+    "dev": "ts-node-dev src/main.ts",
+    "dev:bot": "ts-node-dev src/bot/bot.ts",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
