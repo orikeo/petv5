@@ -1,5 +1,6 @@
 import express from 'express';
 import { notesRouter } from './modules/notes/notes.router';
+import { carRouter } from './modules/car/car.router';
 import { weightRouter } from './modules/weight/weight.router';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { authRouter } from './modules/auth/auth.router';
@@ -28,6 +29,7 @@ app.listen(process.env.PORT || 3000, () => {
 app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
 app.use('/weights', weightRouter);
+app.use('/car',carRouter)
 
 // ⬇️ ВСЕГДА в самом конце
 app.use(errorMiddleware);

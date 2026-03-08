@@ -5,15 +5,18 @@ import {
   getCarById,
   deleteCar
 } from './car.controller';
+import { authGuard } from '../../middlewares/auth.middleware';
+import { requireRole } from '../../middlewares/role.middleware';
+import { UserRole } from '../auth/auth.roles';
 
-const router = Router();
+export const carRouter = Router();
 
-router.post('/', createCar);
+carRouter.post('/', authGuard, requireRole(UserRole.USER, UserRole.ADMIN, UserRole.OWNER), createCar);
 
-router.get('/', getUserCars);
+carRouter.get('/', authGuard, requireRole(UserRole.USER, UserRole.ADMIN, UserRole.OWNER), getUserCars);
 
-router.get('/:id', getCarById);
+carRouter.get('/:id', authGuard, requireRole(UserRole.USER, UserRole.ADMIN, UserRole.OWNER), getCarById);
 
-router.delete('/:id', deleteCar);
+carRouter.delete('/:id', authGuard, requireRole(UserRole.USER, UserRole.ADMIN, UserRole.OWNER), deleteCar);
 
-export default router;
+
