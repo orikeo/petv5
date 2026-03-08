@@ -4,6 +4,7 @@ import { carRouter } from './modules/car/car.router';
 import { weightRouter } from './modules/weight/weight.router';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { authRouter } from './modules/auth/auth.router';
+import { fuelRouter } from "./modules/car/fuel/fuel.router"
 import cookieParser from 'cookie-parser';
 export const app = express();
 
@@ -30,6 +31,7 @@ app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
 app.use('/weights', weightRouter);
 app.use('/cars',carRouter)
+app.use("/fuel", fuelRouter)
 
 // ⬇️ ВСЕГДА в самом конце
 app.use(errorMiddleware);
