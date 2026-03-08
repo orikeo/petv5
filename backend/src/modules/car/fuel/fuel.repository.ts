@@ -1,6 +1,6 @@
 import { db } from "../../../db"
 import { fuelLogs } from "../../../db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, asc } from "drizzle-orm"
 import { CreateFuelLogDto } from './fuel.types';
 
 
@@ -41,6 +41,16 @@ class FuelRepository {
       .where(eq(fuelLogs.id, id))
 
   }
+
+  async findByCarOrdered(carId: string) {
+
+  return db
+    .select()
+    .from(fuelLogs)
+    .where(eq(fuelLogs.carId, carId))
+    .orderBy(asc(fuelLogs.odometer))
+
+}
 
 }
 

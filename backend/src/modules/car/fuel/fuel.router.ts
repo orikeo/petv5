@@ -4,7 +4,8 @@ import { authGuard } from "../../../middlewares/auth.middleware"
 import {
   createFuelLog,
   getFuelLogs,
-  deleteFuelLog
+  deleteFuelLog,
+  getFuelStats
 } from "./fuel.controller"
 
 export const fuelRouter = Router()
@@ -14,3 +15,9 @@ fuelRouter.post("/", authGuard, createFuelLog)
 fuelRouter.get("/car/:carId", authGuard, getFuelLogs)
 
 fuelRouter.delete("/:id", authGuard, deleteFuelLog)
+
+fuelRouter.get(
+  "/car/:carId/stats",
+  authGuard,
+  getFuelStats
+)

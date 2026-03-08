@@ -17,6 +17,50 @@ class FuelService {
 
   }
 
+  async getStats(carId: string) {
+
+  const logs = await fuelRepository.findByCarOrdered(carId)
+
+  if (logs.length < 2) {
+    return null
+  }
+
+  let lastFullTank = null
+  let fuelSum = 0
+
+  for (const log of logs) {
+
+    if (log.fullTank) {
+
+      if (lastFullTank) {
+
+        const distance = log.odometer - lastFullTank.odometer
+
+        const consumption =
+          (fuelSum / distance) * 100
+
+        return {
+          averageConsumption: Number(consumption.toFixed(2)),
+          totalDistance: distance,
+          totalFuel: fuelSum
+        }
+
+      }
+
+      lastFullTank = log
+      fuelSum = 0
+
+    } else {
+
+      fuelSum += Number(log.liters)
+
+    }
+
+  }
+
+  return null
+}
+
   async getByCar(carId: string) {
 
     return fuelRepository.findByCar(carId)
@@ -28,6 +72,8 @@ class FuelService {
     return fuelRepository.delete(id)
 
   }
+
+
 
 }
 

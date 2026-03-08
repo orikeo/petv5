@@ -34,3 +34,18 @@ export const deleteFuelLog = async (req: Request, res: Response) => {
   res.status(204).send()
 
 }
+
+export const getFuelStats = async (
+  req: Request,
+  res: Response
+) => {
+
+  if (!req.user) throw new Error("Unauthorized")
+
+  const carId = req.params.carId as string
+
+  const stats = await fuelService.getStats(carId)
+
+  res.json(stats)
+
+}
