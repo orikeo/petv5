@@ -29,7 +29,7 @@ app.listen(process.env.PORT || 3000, () => {
 app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
 app.use('/weights', weightRouter);
-app.use('/car',carRouter)
+app.use('/cars',carRouter)
 
 // ⬇️ ВСЕГДА в самом конце
 app.use(errorMiddleware);
