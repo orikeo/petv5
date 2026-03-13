@@ -1,0 +1,1 @@
+CREATE INDEX "auth_providers_user_id_idx" ON "auth_providers" USING btree ("user_id");

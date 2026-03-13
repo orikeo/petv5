@@ -1,126 +1,154 @@
-import { db } from '../../db';
-import { users, telegramLinkCodes, notes, weightEntries } from '../../db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { db } from "../../db";
+import {
+  users,
+  telegramLinkCodes,
+  authProviders,
+} from "../../db/schema";
+import { eq, and } from "drizzle-orm";
+import { CreateAuthProviderDto } from "./auth.types";
 
 class AuthRepository {
-  async findByEmail(email: string) {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
+  /**
+   * =========================================================
+   * USERS
+   * =========================================================
+   *
+   * В новой схеме users = это просто аккаунт.
+   * Способы входа теперь лежат отдельно в authProviders.
+   */
 
-    return user;
-  }
-
-  async create(email: string, passwordHash: string) {
+  /**
+   * создать нового пользователя-аккаунт
+   *
+   * ВАЖНО:
+   * users.email / passwordHash / telegramId пока ещё
+   * могут оставаться в таблице на переходный период,
+   * но новая логика уже не должна на них опираться.
+   */
+  async createUser() {
     const [user] = await db
       .insert(users)
-      .values({ email, passwordHash })
+      .values({})
       .returning();
 
     return user;
   }
 
-  async findByTelegramId(telegramId: string) {
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.telegramId, telegramId));
+  /**
+   * найти пользователя по id
+   */
+  async findUserById(userId: string) {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
 
-  return user;
-}
+    return user;
+  }
 
-async createTelegramUser(telegramId: string) {
-  const [user] = await db
-    .insert(users)
-    .values({
-      telegramId
-    })
-    .returning();
+  /**
+   * =========================================================
+   * AUTH PROVIDERS
+   * =========================================================
+   *
+   * authProviders = способы входа:
+   * - email
+   * - telegram
+   * - позже google / github / apple
+   */
 
-  return user;
-}
+  /**
+   * создать способ авторизации
+   *
+   * пример:
+   * provider = "email"
+   * providerId = "user@mail.com"
+   *
+   * или:
+   * provider = "telegram"
+   * providerId = "123456789"
+   */
+  async createAuthProvider(data: CreateAuthProviderDto) {
+    const [provider] = await db
+      .insert(authProviders)
+      .values({
+        userId: data.userId,
+        provider: data.provider,
+        providerId: data.providerId,
+        passwordHash: data.passwordHash ?? null,
+      })
+      .returning();
 
-async saveTelegramLinkCode(
-  code: string,
-  userId: string
-) {
-  await db
-    .insert(telegramLinkCodes)
-    .values({
-      code,
-      userId,
-      expiresAt: new Date(
-        Date.now() + 5 * 60 * 1000
-      )
-    });
-}
+    return provider;
+  }
 
-async findLinkCode(code: string) {
-  
+  /**
+   * найти email provider
+   */
+  async findEmailAuth(email: string) {
+    const [provider] = await db
+      .select()
+      .from(authProviders)
+      .where(
+        and(
+          eq(authProviders.provider, "email"),
+          eq(authProviders.providerId, email)
+        )
+      );
 
-  const all = await db.select().from(telegramLinkCodes);
- 
-  const [row] = await db
-    .select()
-    .from(telegramLinkCodes)
-    .where(
-      and(
-        eq(telegramLinkCodes.code, code),
-        gt(telegramLinkCodes.expiresAt, new Date())
-      )
-    );
+    return provider;
+  }
 
-  
+  /**
+   * найти telegram provider
+   */
+  async findTelegramAuth(telegramId: string) {
+    const [provider] = await db
+      .select()
+      .from(authProviders)
+      .where(
+        and(
+          eq(authProviders.provider, "telegram"),
+          eq(authProviders.providerId, telegramId)
+        )
+      );
 
-  return row;
-}
+    return provider;
+  }
 
-async attachTelegramToUser(
-  userId: string,
-  telegramId: string
-) {
-  await db
-    .update(users)
-    .set({ telegramId })
-    .where(eq(users.id, userId));
-}
+  /**
+   * =========================================================
+   * TELEGRAM LINK CODES
+   * =========================================================
+   *
+   * Используются для привязки Telegram
+   * к уже существующему аккаунту.
+   */
 
-async deleteLinkCode(code: string) {
-  await db
-    .delete(telegramLinkCodes)
-    .where(eq(telegramLinkCodes.code, code));
-}
+  async saveTelegramLinkCode(code: string, userId: string) {
+    await db
+      .insert(telegramLinkCodes)
+      .values({
+        code,
+        userId,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+  }
 
-async findUserByTelegramId(telegramId: string) {
-  const [row] = await db
-    .select()
-    .from(users)
-    .where(eq(users.telegramId, telegramId));
+  async findTelegramLinkCode(code: string) {
+    const [linkCode] = await db
+      .select()
+      .from(telegramLinkCodes)
+      .where(eq(telegramLinkCodes.code, code));
 
-  return row;
-}
+    return linkCode;
+  }
 
-async moveNotes(fromUserId: string, toUserId: string) {
-  await db
-    .update(notes)
-    .set({ userId: toUserId })
-    .where(eq(notes.userId, fromUserId));
-}
-
-async moveWeights(fromUserId: string, toUserId: string) {
-  await db
-    .update(weightEntries)
-    .set({ userId: toUserId })
-    .where(eq(weightEntries.userId, fromUserId));
-}
-
-async deleteUser(userId: string) {
-  await db
-    .delete(users)
-    .where(eq(users.id, userId));
-}
-
+  async deleteTelegramLinkCode(code: string) {
+    await db
+      .delete(telegramLinkCodes)
+      .where(eq(telegramLinkCodes.code, code));
+  }
 }
 
 export const authRepository = new AuthRepository();

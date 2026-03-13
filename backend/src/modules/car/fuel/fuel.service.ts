@@ -5,17 +5,43 @@ class FuelService {
 
   async create(dto: CreateFuelLogDto) {
 
-    return fuelRepository.create({
-      carId: dto.carId,
-      odometer: dto.odometer,
-      liters: dto.liters,
-      pricePerLiter: dto.pricePerLiter ?? null,
-      totalPrice: dto.totalPrice ?? null,
-      fullTank: dto.fullTank ?? false,
-      station: dto.station ?? null
-    })
+    if (dto.liters <= 0) {
+  throw new Error("Liters must be greater than 0")
+}
+
+  /**
+   * проверяем последний пробег
+   */
+  const lastLog = await fuelRepository.getLastLog(dto.carId)
+
+  if (lastLog && dto.odometer <= lastLog.odometer) {
+
+    throw new Error(
+      `Odometer must be greater than previous value (${lastLog.odometer})`
+    )
 
   }
+
+  /**
+   * автоматический расчёт total price
+   */
+  let totalPrice = dto.totalPrice ?? null
+
+  if (!totalPrice && dto.pricePerLiter) {
+    totalPrice = dto.liters * dto.pricePerLiter
+  }
+
+  return fuelRepository.create({
+    carId: dto.carId,
+    odometer: dto.odometer,
+    liters: dto.liters,
+    pricePerLiter: dto.pricePerLiter ?? null,
+    totalPrice,
+    fullTank: dto.fullTank ?? false,
+    station: dto.station ?? null
+  })
+
+}
 
   async getStats(carId: string) {
 
@@ -72,6 +98,8 @@ class FuelService {
     return fuelRepository.delete(id)
 
   }
+
+  
 
 
 

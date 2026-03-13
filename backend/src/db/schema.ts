@@ -35,6 +35,79 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
+
+
+
+/**
+ * новая таблица способов авторизации
+ *
+ * один user может иметь несколько способов входа:
+ * - email
+ * - telegram
+ * - google
+ * и т.д.
+ */
+export const authProviders = pgTable(
+  "auth_providers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    /**
+     * ссылка на основную запись пользователя
+     */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    /**
+     * тип способа входа
+     * например:
+     * - email
+     * - telegram
+     */
+    provider: text("provider").notNull(),
+
+    /**
+     * идентификатор внутри провайдера
+     *
+     * для email это email
+     * для telegram это telegram_id
+     */
+    providerId: text("provider_id").notNull(),
+
+    /**
+     * пароль нужен не всем провайдерам
+     * для email/password он есть
+     * для telegram обычно null
+     */
+    passwordHash: text("password_hash"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    /**
+     * нельзя дважды создать один и тот же provider/providerId
+     *
+     * например:
+     * email + same@mail.com
+     * не должен существовать два раза
+     */
+    providerProviderIdUnique: uniqueIndex(
+      "auth_providers_provider_provider_id_idx"
+    ).on(table.provider, table.providerId),
+    userIdx: index("auth_providers_user_id_idx").on(table.userId)
+  })
+);
+
+
+
+
+
+
+
+
 export const weightEntries = pgTable('weight_entries', {
   id: uuid('id').defaultRandom().primaryKey(),
 
@@ -169,3 +242,5 @@ export const repairs = pgTable(
     repairTypeIdx: index('repairs_type_idx').on(table.repairTypeId)
   })
 );
+
+

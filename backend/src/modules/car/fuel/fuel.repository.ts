@@ -24,6 +24,19 @@ class FuelRepository {
     return entry
   }
 
+  async getLastLog(carId: string) {
+
+  const [entry] = await db
+    .select()
+    .from(fuelLogs)
+    .where(eq(fuelLogs.carId, carId))
+    .orderBy(desc(fuelLogs.odometer))
+    .limit(1)
+
+  return entry
+
+}
+
   async findByCar(carId: string) {
 
     return db

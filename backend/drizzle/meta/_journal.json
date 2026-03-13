@@ -64,6 +64,20 @@
       "when": 1772918472896,
       "tag": "0008_stormy_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1773433328883,
+      "tag": "0009_lively_tigra",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773434699838,
+      "tag": "0010_broad_scourge",
+      "breakpoints": true
     }
   ]
 }

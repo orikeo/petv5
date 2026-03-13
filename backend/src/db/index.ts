@@ -1,22 +1,23 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import { env } from '../config/env';
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { env } from "../config/env";
+
+const dbUrl = new URL(env.databaseUrl);
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  host: dbUrl.hostname,
+  port: Number(dbUrl.port || 5432),
+  database: dbUrl.pathname.replace("/", ""),
+  user: dbUrl.username,
+  password: dbUrl.password,
 
-  // максимальное количество соединений
   max: 10,
-
-  // сколько ждать соединение
   connectionTimeoutMillis: 5000,
-
-  // сколько держать idle соединение
   idleTimeoutMillis: 30000,
 
   ssl: {
-    rejectUnauthorized: false
-  }
-})
+    rejectUnauthorized: false,
+  },
+});
 
-export const db = drizzle(pool)
+export const db = drizzle(pool);
