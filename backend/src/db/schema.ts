@@ -238,4 +238,67 @@ export const repairs = pgTable(
   })
 );
 
+export const plannerItems = pgTable("planner_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
+  date: date("date").notNull(),
+
+  title: text("title").notNull(),
+  description: text("description"),
+
+  isDone: boolean("is_done").notNull().default(false),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const dailyCheckItems = pgTable("daily_check_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
+  title: text("title").notNull(),
+
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+
+export const dailyCheckEntries = pgTable(
+  "daily_check_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    itemId: uuid("item_id")
+      .notNull()
+      .references(() => dailyCheckItems.id, { onDelete: "cascade" }),
+
+    date: date("date").notNull(),
+
+    value: boolean("value").notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueUserDateItem: uniqueIndex("daily_check_entries_user_date_item_idx").on(
+      table.userId,
+      table.date,
+      table.itemId
+    ),
+  })
+);
 
