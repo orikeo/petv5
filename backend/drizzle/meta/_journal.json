@@ -78,6 +78,13 @@
       "when": 1773434699838,
       "tag": "0010_broad_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1773440828342,
+      "tag": "0011_minor_mephistopheles",
+      "breakpoints": true
     }
   ]
 }

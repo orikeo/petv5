@@ -26,25 +26,30 @@ class AuthRepository {
    * но новая логика уже не должна на них опираться.
    */
   async createUser() {
-    const [user] = await db
-      .insert(users)
-      .values({})
-      .returning();
+  const [user] = await db
+    .insert(users)
+    .values({})
+    .returning({
+      id: users.id,
+      role: users.role,
+      createdAt: users.createdAt,
+    });
 
-    return user;
-  }
+  return user;
+}
 
-  /**
-   * найти пользователя по id
-   */
-  async findUserById(userId: string) {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
+async findUserById(userId: string) {
+  const [user] = await db
+    .select({
+      id: users.id,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.id, userId));
 
-    return user;
-  }
+  return user;
+}
 
   /**
    * =========================================================
