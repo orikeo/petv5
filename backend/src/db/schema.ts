@@ -151,53 +151,51 @@ export const repairTypes = pgTable('repair_types', {
 });
 
 export const fuelLogs = pgTable(
-  'fuel_logs',
+  "fuel_logs",
   {
-    id: uuid('id').defaultRandom().primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
 
-    carId: uuid('car_id')
+    carId: uuid("car_id")
       .notNull()
-      .references(() => cars.id, { onDelete: 'cascade' }),
+      .references(() => cars.id, { onDelete: "cascade" }),
+
+    // дата фактической заправки
+    fuelDate: date("fuel_date").notNull(),
 
     // пробег на момент заправки
-    odometer: integer('odometer').notNull(),
+    // может быть неизвестен для старых чеков
+    odometer: integer("odometer"),
 
     // количество литров
-    liters: numeric('liters', { precision: 10, scale: 2 }).notNull(),
+    liters: numeric("liters", { precision: 10, scale: 2 }).notNull(),
 
     // цена за литр
-    pricePerLiter: numeric('price_per_liter', {
+    pricePerLiter: numeric("price_per_liter", {
       precision: 10,
-      scale: 2
-    }),
+      scale: 2,
+    }).notNull(),
 
     // общая стоимость
-    totalPrice: numeric('total_price', {
+    totalPrice: numeric("total_price", {
       precision: 10,
-      scale: 2
-    }),
+      scale: 2,
+    }).notNull(),
 
     // был ли полный бак
-    fullTank: boolean('full_tank')
-      .notNull()
-      .default(true),
+    fullTank: boolean("full_tank").notNull().default(false),
 
     // название заправки (опционально)
-    station: text('station'),
+    station: text("station"),
 
-    createdAt: timestamp('created_at')
-      .defaultNow()
-      .notNull()
+    createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-
   (table) => ({
-    // быстрый поиск по машине
-    carIdx: index('fuel_logs_car_idx').on(table.carId),
-
-    // защита от двух одинаковых пробегов
-    uniqueOdometerPerCar: uniqueIndex(
-      'fuel_logs_car_odometer_idx'
-    ).on(table.carId, table.odometer)
+    carIdx: index("fuel_logs_car_idx").on(table.carId),
+    carDateIdx: index("fuel_logs_car_date_idx").on(table.carId, table.fuelDate),
+    carOdometerIdx: index("fuel_logs_car_odometer_idx").on(
+      table.carId,
+      table.odometer
+    ),
   })
 );
 
