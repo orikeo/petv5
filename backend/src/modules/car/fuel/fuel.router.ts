@@ -1,23 +1,38 @@
-import { Router } from "express"
-import { authGuard } from "../../../middlewares/auth.middleware"
+import { Router } from "express";
+import { fuelController } from "./fuel.controller";
 
-import {
-  createFuelLog,
-  getFuelLogs,
-  deleteFuelLog,
-  getFuelStats
-} from "./fuel.controller"
+/**
+ * предполагается, что у тебя уже есть middleware auth
+ * который добавляет req.user
+ */
+import { authGuard } from "../../../middlewares/auth.middleware";
 
-export const fuelRouter = Router()
+const fuelRouter = Router();
 
-fuelRouter.post("/", authGuard, createFuelLog)
+/**
+ * =========================================================
+ * ROUTES
+ * =========================================================
+ */
 
-fuelRouter.get("/car/:carId", authGuard, getFuelLogs)
+/**
+ * создать заправку
+ */
+fuelRouter.post("/", authGuard, fuelController.create);
 
-fuelRouter.delete("/:id", authGuard, deleteFuelLog)
+/**
+ * получить все заправки по машине
+ */
+fuelRouter.get("/car/:carId", authGuard, fuelController.getByCar);
 
-fuelRouter.get(
-  "/car/:carId/stats",
-  authGuard,
-  getFuelStats
-)
+/**
+ * обновить
+ */
+fuelRouter.patch("/:id", authGuard, fuelController.update);
+
+/**
+ * удалить
+ */
+fuelRouter.delete("/:id", authGuard, fuelController.delete);
+
+export default fuelRouter;

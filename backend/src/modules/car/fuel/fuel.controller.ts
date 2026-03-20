@@ -1,51 +1,110 @@
-import { Request, Response } from "express"
-import { fuelService } from "./fuel.service"
+import { Request, Response } from "express";
+import { fuelService } from "./fuel.service";
 
-export const createFuelLog = async (req: Request, res: Response) => {
+class FuelController {
+  /**
+   * =========================================================
+   * CREATE
+   * =========================================================
+   */
+  create = async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      const body = req.body;
 
-  if (!req.user) throw new Error("Unauthorized")
+      if (!userId) {
+        return res.status(401).json({ message: "Не авторизован" });
+      }
 
-  const data = await fuelService.create(req.body)
+      const fuelLog = await fuelService.create(userId, body);
 
-  res.status(201).json(data)
+      return res.status(201).json(fuelLog);
+    } catch (error) {
+      return this.handleError(error, res);
+    }
+  };
 
+  /**
+   * =========================================================
+   * GET BY CAR
+   * =========================================================
+   */
+  getByCar = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { carId } = req.params as { carId: string };
+
+    if (!userId) {
+      return res.status(401).json({ message: "Не авторизован" });
+    }
+
+    const fuelLogs = await fuelService.getByCar(userId, carId);
+
+    return res.status(200).json(fuelLogs);
+  } catch (error) {
+    return this.handleError(error, res);
+  }
+};
+
+  /**
+   * =========================================================
+   * UPDATE
+   * =========================================================
+   */
+  update = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params as { id: string };
+    const body = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Не авторизован" });
+    }
+
+    const updated = await fuelService.update(userId, id, body);
+
+    return res.status(200).json(updated);
+  } catch (error) {
+    return this.handleError(error, res);
+  }
+};
+
+  /**
+   * =========================================================
+   * DELETE
+   * =========================================================
+   */
+  delete = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params as { id: string };
+
+    if (!userId) {
+      return res.status(401).json({ message: "Не авторизован" });
+    }
+
+    await fuelService.delete(userId, id);
+
+    return res.status(200).json({ message: "Запись удалена" });
+  } catch (error) {
+    return this.handleError(error, res);
+  }
+};
+
+  /**
+   * =========================================================
+   * ERROR HANDLER
+   * =========================================================
+   */
+  private handleError(error: unknown, res: Response) {
+    console.error(error);
+
+    if (error instanceof Error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
 }
 
-export const getFuelLogs = async (req: Request, res: Response) => {
-
-  if (!req.user) throw new Error("Unauthorized")
-
-  const carId = req.params.carId as string
-
-  const items = await fuelService.getByCar(carId)
-
-  res.json(items)
-
-}
-
-export const deleteFuelLog = async (req: Request, res: Response) => {
-
-  if (!req.user) throw new Error("Unauthorized")
-
-  const id = req.params.id as string
-
-  await fuelService.delete(id)
-
-  res.status(204).send()
-
-}
-
-export const getFuelStats = async (
-  req: Request,
-  res: Response
-) => {
-
-  if (!req.user) throw new Error("Unauthorized")
-
-  const carId = req.params.carId as string
-
-  const stats = await fuelService.getStats(carId)
-
-  res.json(stats)
-
-}
+export const fuelController = new FuelController();

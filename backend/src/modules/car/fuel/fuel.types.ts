@@ -1,9 +1,18 @@
 export interface CreateFuelLogDto {
   carId: string;
-  fuelDate: string; // YYYY-MM-DD
+  fuelDate: string;
   odometer?: number | null;
   liters: number;
   pricePerLiter: number;
+  fullTank?: boolean;
+  station?: string | null;
+}
+
+export interface UpdateFuelLogDto {
+  fuelDate?: string;
+  odometer?: number | null;
+  liters?: number;
+  pricePerLiter?: number;
   fullTank?: boolean;
   station?: string | null;
 }
