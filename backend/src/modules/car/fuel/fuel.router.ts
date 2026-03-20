@@ -7,7 +7,7 @@ import { fuelController } from "./fuel.controller";
  */
 import { authGuard } from "../../../middlewares/auth.middleware";
 
-const fuelRouter = Router();
+export const fuelRouter = Router();
 
 /**
  * =========================================================
@@ -35,4 +35,3 @@ fuelRouter.patch("/:id", authGuard, fuelController.update);
  */
 fuelRouter.delete("/:id", authGuard, fuelController.delete);
 
-export default fuelRouter;
