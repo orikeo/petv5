@@ -8,6 +8,17 @@ export const userRoleEnum = pgEnum('user_role', [
   UserRole.USER
 ]);
 
+export const dailyCheckAppliesModeEnum = pgEnum('daily_check_applies_mode', [
+  'every_day',
+  'selected_days'
+]);
+
+export const dailyCheckStatusEnum = pgEnum('daily_check_status', [
+  'yes',
+  'no',
+  'skipped'
+]);
+
 export const notes = pgTable('notes', {
   id: uuid('id').defaultRandom().primaryKey(),
 
@@ -29,9 +40,6 @@ export const users = pgTable('users', {
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
-
-
-
 
 /**
  * новая таблица способов авторизации
@@ -96,13 +104,6 @@ export const authProviders = pgTable(
   })
 );
 
-
-
-
-
-
-
-
 export const weightEntries = pgTable('weight_entries', {
   id: uuid('id').defaultRandom().primaryKey(),
 
@@ -127,8 +128,8 @@ export const telegramLinkCodes = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     expiresAt: timestamp('expires_at', {
-  withTimezone: true
-}).notNull()
+      withTimezone: true
+    }).notNull()
   }
 );
 
@@ -159,32 +160,24 @@ export const fuelLogs = pgTable(
       .notNull()
       .references(() => cars.id, { onDelete: "cascade" }),
 
-    // дата фактической заправки
     fuelDate: date("fuel_date").notNull(),
 
-    // пробег на момент заправки
-    // может быть неизвестен для старых чеков
     odometer: integer("odometer"),
 
-    // количество литров
     liters: numeric("liters", { precision: 10, scale: 2 }).notNull(),
 
-    // цена за литр
     pricePerLiter: numeric("price_per_liter", {
       precision: 10,
       scale: 2,
     }).notNull(),
 
-    // общая стоимость
     totalPrice: numeric("total_price", {
       precision: 10,
       scale: 2,
     }).notNull(),
 
-    // был ли полный бак
     fullTank: boolean("full_tank").notNull().default(false),
 
-    // название заправки (опционально)
     station: text("station"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -212,14 +205,11 @@ export const repairs = pgTable(
       .notNull()
       .references(() => repairTypes.id),
 
-    // пробег на момент ремонта
     odometer: integer('odometer'),
 
-    // стоимость ремонта
     price: numeric('price', { precision: 10, scale: 2 })
       .notNull(),
 
-    // заметка
     note: text('note'),
 
     createdAt: timestamp('created_at')
@@ -228,10 +218,7 @@ export const repairs = pgTable(
   },
 
   (table) => ({
-    // быстрый поиск ремонтов машины
     carIdx: index('repairs_car_idx').on(table.carId),
-
-    // если захочешь смотреть статистику по типам ремонта
     repairTypeIdx: index('repairs_type_idx').on(table.repairTypeId)
   })
 );
@@ -254,22 +241,73 @@ export const plannerItems = pgTable("planner_items", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const dailyCheckItems = pgTable("daily_check_items", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const dailyCheckItems = pgTable(
+  "daily_check_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
 
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
 
-  title: text("title").notNull(),
+    title: text("title").notNull(),
+    emoji: text("emoji"),
 
-  sortOrder: integer("sort_order").notNull().default(0),
-  isActive: boolean("is_active").notNull().default(true),
+    appliesMode: dailyCheckAppliesModeEnum("applies_mode")
+      .notNull()
+      .default("every_day"),
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+    /**
+     * Храним как csv:
+     * "1,2,3,4,5"
+     *
+     * Это не идеальная вечная модель,
+     * но для текущего этапа проекта она простая и надёжная.
+     */
+    weekDaysCsv: text("week_days_csv").notNull().default(""),
 
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userSortIdx: index("daily_check_items_user_sort_idx").on(
+      table.userId,
+      table.sortOrder
+    ),
+  })
+);
+
+export const dailyReports = pgTable(
+  "daily_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    date: date("date").notNull(),
+
+    moodScore: integer("mood_score"),
+    moodComment: text("mood_comment"),
+
+    summary: text("summary"),
+    note: text("note"),
+    musicOfDay: text("music_of_day"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueUserDate: uniqueIndex("daily_reports_user_date_idx").on(
+      table.userId,
+      table.date
+    ),
+  })
+);
 
 export const dailyCheckEntries = pgTable(
   "daily_check_entries",
@@ -286,7 +324,8 @@ export const dailyCheckEntries = pgTable(
 
     date: date("date").notNull(),
 
-    value: boolean("value").notNull(),
+    status: dailyCheckStatusEnum("status").notNull(),
+    skipReason: text("skip_reason"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -299,4 +338,3 @@ export const dailyCheckEntries = pgTable(
     ),
   })
 );
-
