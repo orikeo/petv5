@@ -4,9 +4,11 @@ import { carRouter } from './modules/car/car.router';
 import { weightRouter } from './modules/weight/weight.router';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { authRouter } from './modules/auth/auth.router';
-import { fuelRouter } from "./modules/car/fuel/fuel.router"
+import { fuelRouter } from "./modules/car/fuel/fuel.router";
 import { repairRouter } from './modules/car/repair/repair.router';
 import cookieParser from 'cookie-parser';
+import { dailyCheckRouter } from './modules/daily-check/daily-check.router';
+
 export const app = express();
 
 app.use(express.json());
@@ -16,7 +18,7 @@ app.get('/', (_, res) => {
   res.send('Bot is running');
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
     uptime: process.uptime(),
@@ -31,9 +33,10 @@ app.listen(process.env.PORT || 3000, () => {
 app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
 app.use('/weights', weightRouter);
-app.use('/cars',carRouter)
-app.use("/fuel", fuelRouter)
-app.use("/repair", repairRouter)
+app.use('/cars', carRouter);
+app.use('/fuel', fuelRouter);
+app.use('/repair', repairRouter);
+app.use('/daily-check', dailyCheckRouter);
 
 // ⬇️ ВСЕГДА в самом конце
 app.use(errorMiddleware);
