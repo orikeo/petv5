@@ -1,6 +1,12 @@
 export type DailyCheckAppliesMode = "every_day" | "selected_days";
 export type DailyCheckStatus = "yes" | "no" | "skipped";
 
+export type DailyReportLifecycleStatus =
+  | "open"
+  | "completed"
+  | "partial"
+  | "missed";
+
 export interface DailyCheckItemDto {
   id: string;
   userId: string;
@@ -48,8 +54,26 @@ export interface SaveDailyReportDto {
 
 export interface SaveDayDto {
   date: string;
+  /**
+   * Таймзона устройства пользователя.
+   * Пример:
+   * Europe/Kyiv
+   */
+  timeZone?: string;
+
   report?: SaveDailyReportDto;
   entries: SaveDailyCheckEntryDto[];
+}
+
+export interface DailyReportLifecycleDto {
+  status: DailyReportLifecycleStatus;
+  deadlineAt: string;
+  closedAt: string | null;
+  completedAt: string | null;
+  wasEditedAfterDeadline: boolean;
+  timeZone: string;
+  isOverdue: boolean;
+  canEdit: boolean;
 }
 
 export interface DailyOverviewDayDto {
@@ -57,16 +81,27 @@ export interface DailyOverviewDayDto {
   moodScore: number | null;
   summary: string | null;
   note: string | null;
+
   habitsTotal: number;
   yesCount: number;
   noCount: number;
   skippedCount: number;
+
   completionRate: number;
   finalScore: number;
+
+  status: DailyReportLifecycleStatus;
+  deadlineAt: string;
+  closedAt: string | null;
+  wasEditedAfterDeadline: boolean;
+  timeZone: string;
+  isOverdue: boolean;
+  canEdit: boolean;
 }
 
 export interface DailyDayResponseDto {
   date: string;
+
   report: {
     moodScore: number | null;
     moodComment: string | null;
@@ -74,6 +109,9 @@ export interface DailyDayResponseDto {
     note: string | null;
     musicOfDay: string | null;
   } | null;
+
+  lifecycle: DailyReportLifecycleDto;
+
   items: Array<{
     id: string;
     title: string;
@@ -85,4 +123,40 @@ export interface DailyDayResponseDto {
     status: DailyCheckStatus | null;
     skipReason: string | null;
   }>;
+}
+
+export interface DailyReportRowDto {
+  id: string;
+  date: string;
+
+  moodScore: number | null;
+  moodComment: string | null;
+  summary: string | null;
+  note: string | null;
+  musicOfDay: string | null;
+
+  status: DailyReportLifecycleStatus;
+  deadlineAt: Date | null;
+  closedAt: Date | null;
+  completedAt: Date | null;
+  wasEditedAfterDeadline: boolean;
+  timeZone: string;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UpsertDailyReportDto {
+  moodScore: number | null;
+  moodComment: string | null;
+  summary: string | null;
+  note: string | null;
+  musicOfDay: string | null;
+
+  status: DailyReportLifecycleStatus;
+  deadlineAt: Date | null;
+  closedAt: Date | null;
+  completedAt: Date | null;
+  wasEditedAfterDeadline: boolean;
+  timeZone: string;
 }

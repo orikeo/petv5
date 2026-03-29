@@ -4,9 +4,10 @@ import { dailyCheckEntries, dailyCheckItems, dailyReports } from "../../db/schem
 import {
   CreateDailyCheckItemDto,
   DailyCheckItemDto,
+  DailyReportRowDto,
   SaveDailyCheckEntryDto,
-  SaveDailyReportDto,
   UpdateDailyCheckItemDto,
+  UpsertDailyReportDto,
 } from "./daily-check.types";
 
 class DailyCheckRepository {
@@ -46,6 +47,42 @@ class DailyCheckRepository {
       weekDays: this.mapWeekDaysCsvToArray(row.weekDaysCsv),
       sortOrder: row.sortOrder,
       isActive: row.isActive,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private mapReport(row: {
+    id: string;
+    date: string;
+    moodScore: number | null;
+    moodComment: string | null;
+    summary: string | null;
+    note: string | null;
+    musicOfDay: string | null;
+    status: "open" | "completed" | "partial" | "missed";
+    deadlineAt: Date | null;
+    closedAt: Date | null;
+    completedAt: Date | null;
+    wasEditedAfterDeadline: boolean;
+    timeZone: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): DailyReportRowDto {
+    return {
+      id: row.id,
+      date: row.date,
+      moodScore: row.moodScore,
+      moodComment: row.moodComment,
+      summary: row.summary,
+      note: row.note,
+      musicOfDay: row.musicOfDay,
+      status: row.status,
+      deadlineAt: row.deadlineAt,
+      closedAt: row.closedAt,
+      completedAt: row.completedAt,
+      wasEditedAfterDeadline: row.wasEditedAfterDeadline,
+      timeZone: row.timeZone,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -140,7 +177,9 @@ class DailyCheckRepository {
     if (dto.title !== undefined) updateData.title = dto.title;
     if (dto.emoji !== undefined) updateData.emoji = dto.emoji;
     if (dto.appliesMode !== undefined) updateData.appliesMode = dto.appliesMode;
-    if (dto.weekDays !== undefined) updateData.weekDaysCsv = this.mapWeekDaysArrayToCsv(dto.weekDays);
+    if (dto.weekDays !== undefined) {
+      updateData.weekDaysCsv = this.mapWeekDaysArrayToCsv(dto.weekDays);
+    }
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
@@ -224,20 +263,28 @@ class DailyCheckRepository {
     const [row] = await db
       .select({
         id: dailyReports.id,
+        date: dailyReports.date,
         moodScore: dailyReports.moodScore,
         moodComment: dailyReports.moodComment,
         summary: dailyReports.summary,
         note: dailyReports.note,
         musicOfDay: dailyReports.musicOfDay,
-        date: dailyReports.date,
+        status: dailyReports.status,
+        deadlineAt: dailyReports.deadlineAt,
+        closedAt: dailyReports.closedAt,
+        completedAt: dailyReports.completedAt,
+        wasEditedAfterDeadline: dailyReports.wasEditedAfterDeadline,
+        timeZone: dailyReports.timeZone,
+        createdAt: dailyReports.createdAt,
+        updatedAt: dailyReports.updatedAt,
       })
       .from(dailyReports)
       .where(and(eq(dailyReports.userId, userId), eq(dailyReports.date, date)));
 
-    return row;
+    return row ? this.mapReport(row) : undefined;
   }
 
-  async upsertReport(userId: string, date: string, dto: SaveDailyReportDto) {
+  async upsertReport(userId: string, date: string, dto: UpsertDailyReportDto) {
     const existing = await this.getReportByUserAndDate(userId, date);
 
     if (!existing) {
@@ -246,58 +293,96 @@ class DailyCheckRepository {
         .values({
           userId,
           date,
-          moodScore: dto.moodScore ?? null,
-          moodComment: dto.moodComment ?? null,
-          summary: dto.summary ?? null,
-          note: dto.note ?? null,
-          musicOfDay: dto.musicOfDay ?? null,
+          moodScore: dto.moodScore,
+          moodComment: dto.moodComment,
+          summary: dto.summary,
+          note: dto.note,
+          musicOfDay: dto.musicOfDay,
+          status: dto.status,
+          deadlineAt: dto.deadlineAt,
+          closedAt: dto.closedAt,
+          completedAt: dto.completedAt,
+          wasEditedAfterDeadline: dto.wasEditedAfterDeadline,
+          timeZone: dto.timeZone,
           updatedAt: new Date(),
         })
         .returning({
           id: dailyReports.id,
+          date: dailyReports.date,
           moodScore: dailyReports.moodScore,
           moodComment: dailyReports.moodComment,
           summary: dailyReports.summary,
           note: dailyReports.note,
           musicOfDay: dailyReports.musicOfDay,
-          date: dailyReports.date,
+          status: dailyReports.status,
+          deadlineAt: dailyReports.deadlineAt,
+          closedAt: dailyReports.closedAt,
+          completedAt: dailyReports.completedAt,
+          wasEditedAfterDeadline: dailyReports.wasEditedAfterDeadline,
+          timeZone: dailyReports.timeZone,
+          createdAt: dailyReports.createdAt,
+          updatedAt: dailyReports.updatedAt,
         });
 
-      return created;
+      return this.mapReport(created);
     }
 
     const [updated] = await db
       .update(dailyReports)
       .set({
-        moodScore: dto.moodScore ?? null,
-        moodComment: dto.moodComment ?? null,
-        summary: dto.summary ?? null,
-        note: dto.note ?? null,
-        musicOfDay: dto.musicOfDay ?? null,
+        moodScore: dto.moodScore,
+        moodComment: dto.moodComment,
+        summary: dto.summary,
+        note: dto.note,
+        musicOfDay: dto.musicOfDay,
+        status: dto.status,
+        deadlineAt: dto.deadlineAt,
+        closedAt: dto.closedAt,
+        completedAt: dto.completedAt,
+        wasEditedAfterDeadline: dto.wasEditedAfterDeadline,
+        timeZone: dto.timeZone,
         updatedAt: new Date(),
       })
       .where(eq(dailyReports.id, existing.id))
       .returning({
         id: dailyReports.id,
+        date: dailyReports.date,
         moodScore: dailyReports.moodScore,
         moodComment: dailyReports.moodComment,
         summary: dailyReports.summary,
         note: dailyReports.note,
         musicOfDay: dailyReports.musicOfDay,
-        date: dailyReports.date,
+        status: dailyReports.status,
+        deadlineAt: dailyReports.deadlineAt,
+        closedAt: dailyReports.closedAt,
+        completedAt: dailyReports.completedAt,
+        wasEditedAfterDeadline: dailyReports.wasEditedAfterDeadline,
+        timeZone: dailyReports.timeZone,
+        createdAt: dailyReports.createdAt,
+        updatedAt: dailyReports.updatedAt,
       });
 
-    return updated;
+    return this.mapReport(updated);
   }
 
   async getReportsInRange(userId: string, from: string, to: string) {
-    return db
+    const rows = await db
       .select({
         id: dailyReports.id,
         date: dailyReports.date,
         moodScore: dailyReports.moodScore,
+        moodComment: dailyReports.moodComment,
         summary: dailyReports.summary,
         note: dailyReports.note,
+        musicOfDay: dailyReports.musicOfDay,
+        status: dailyReports.status,
+        deadlineAt: dailyReports.deadlineAt,
+        closedAt: dailyReports.closedAt,
+        completedAt: dailyReports.completedAt,
+        wasEditedAfterDeadline: dailyReports.wasEditedAfterDeadline,
+        timeZone: dailyReports.timeZone,
+        createdAt: dailyReports.createdAt,
+        updatedAt: dailyReports.updatedAt,
       })
       .from(dailyReports)
       .where(
@@ -307,6 +392,8 @@ class DailyCheckRepository {
           lte(dailyReports.date, to)
         )
       );
+
+    return rows.map((row) => this.mapReport(row));
   }
 
   async getEntriesInRange(userId: string, from: string, to: string) {

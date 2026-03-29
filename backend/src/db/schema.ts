@@ -8,6 +8,8 @@ export const userRoleEnum = pgEnum('user_role', [
   UserRole.USER
 ]);
 
+
+
 export const dailyCheckAppliesModeEnum = pgEnum('daily_check_applies_mode', [
   'every_day',
   'selected_days'
@@ -18,6 +20,16 @@ export const dailyCheckStatusEnum = pgEnum('daily_check_status', [
   'no',
   'skipped'
 ]);
+
+export const dailyReportLifecycleStatusEnum = pgEnum(
+  'daily_report_lifecycle_status',
+  [
+    'open',
+    'completed',
+    'partial',
+    'missed'
+  ]
+);
 
 export const notes = pgTable('notes', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -289,6 +301,14 @@ export const dailyReports = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
+    /**
+     * День, за который пользователь отчитывается.
+     * Это НЕ createdAt.
+     *
+     * Пример:
+     * date = "2026-03-29"
+     * значит это отчёт именно за 29 марта.
+     */
     date: date("date").notNull(),
 
     moodScore: integer("mood_score"),
@@ -297,6 +317,58 @@ export const dailyReports = pgTable(
     summary: text("summary"),
     note: text("note"),
     musicOfDay: text("music_of_day"),
+
+    /**
+     * Жизненный статус отчёта:
+     *
+     * open      -> день ещё открыт, дедлайн не прошёл
+     * completed -> день закрыт и заполнен нормально
+     * partial   -> день закрыт, но заполнен не полностью
+     * missed    -> день закрыт и по сути пропущен
+     */
+    status: dailyReportLifecycleStatusEnum("status")
+      .notNull()
+      .default("open"),
+
+    /**
+     * До какого момента день можно заполнить "в рамках правила".
+     *
+     * Мы договорились:
+     * отчёт за день D можно нормально заполнить до 12:00 следующего дня
+     * в timezone пользователя.
+     *
+     * В базе храним UTC timestamp.
+     */
+    deadlineAt: timestamp("deadline_at", { withTimezone: true }),
+
+    /**
+     * Когда день был окончательно закрыт.
+     * Обычно:
+     * - null, пока день ещё open
+     * - timestamp, когда день перешёл в completed / partial / missed
+     */
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+
+    /**
+     * Когда пользователь последний раз сохранял осмысленные данные по дню.
+     */
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+
+    /**
+     * Если пользователь редактировал день уже после дедлайна.
+     */
+    wasEditedAfterDeadline: boolean("was_edited_after_deadline")
+      .notNull()
+      .default(false),
+
+    /**
+     * Таймзона, по которой вычислялся deadlineAt.
+     * Например:
+     * - Europe/Kyiv
+     * - Europe/Berlin
+     * - UTC
+     */
+    timeZone: text("time_zone").notNull().default("UTC"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

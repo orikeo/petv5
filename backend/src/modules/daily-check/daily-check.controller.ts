@@ -50,7 +50,7 @@ class DailyCheckController {
   };
 
   getDay = async (
-    req: Request<{}, {}, {}, { date?: string }>,
+    req: Request<{}, {}, {}, { date?: string; timeZone?: string }>,
     res: Response
   ) => {
     const date = req.query.date;
@@ -59,7 +59,12 @@ class DailyCheckController {
       throw new AppError("date query param is required", 400);
     }
 
-    const day = await dailyCheckService.getDay(this.getUserId(req), date);
+    const day = await dailyCheckService.getDay(
+      this.getUserId(req),
+      date,
+      req.query.timeZone
+    );
+
     res.json(day);
   };
 
@@ -69,16 +74,22 @@ class DailyCheckController {
   };
 
   getRange = async (
-    req: Request<{}, {}, {}, { from?: string; to?: string }>,
+    req: Request<{}, {}, {}, { from?: string; to?: string; timeZone?: string }>,
     res: Response
   ) => {
-    const { from, to } = req.query;
+    const { from, to, timeZone } = req.query;
 
     if (!from || !to) {
       throw new AppError("from and to query params are required", 400);
     }
 
-    const result = await dailyCheckService.getRange(this.getUserId(req), from, to);
+    const result = await dailyCheckService.getRange(
+      this.getUserId(req),
+      from,
+      to,
+      timeZone
+    );
+
     res.json(result);
   };
 }
