@@ -15,7 +15,8 @@ export interface DailyCheckItemDto {
   appliesMode: DailyCheckAppliesMode;
   weekDays: number[];
   sortOrder: number;
-  isActive: boolean;
+  startDate: string;
+  endDate: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,7 +27,12 @@ export interface CreateDailyCheckItemDto {
   appliesMode?: DailyCheckAppliesMode;
   weekDays?: number[];
   sortOrder?: number;
-  isActive?: boolean;
+
+  /**
+   * С какой даты привычка начинает действовать.
+   * Если не передать — backend подставит текущую UTC дату.
+   */
+  effectiveFrom?: string;
 }
 
 export interface UpdateDailyCheckItemDto {
@@ -35,7 +41,12 @@ export interface UpdateDailyCheckItemDto {
   appliesMode?: DailyCheckAppliesMode;
   weekDays?: number[];
   sortOrder?: number;
-  isActive?: boolean;
+
+  /**
+   * С какой даты включается новая версия привычки.
+   * Если не передать — backend подставит текущую UTC дату.
+   */
+  effectiveFrom?: string;
 }
 
 export interface SaveDailyCheckEntryDto {
@@ -54,6 +65,7 @@ export interface SaveDailyReportDto {
 
 export interface SaveDayDto {
   date: string;
+
   /**
    * Таймзона устройства пользователя.
    * Пример:
@@ -119,7 +131,6 @@ export interface DailyDayResponseDto {
     appliesMode: DailyCheckAppliesMode;
     weekDays: number[];
     sortOrder: number;
-    isActive: boolean;
     status: DailyCheckStatus | null;
     skipReason: string | null;
   }>;

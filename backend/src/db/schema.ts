@@ -1,56 +1,58 @@
-import { pgTable, uuid, text, timestamp, date, numeric, boolean, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
-import { pgEnum } from 'drizzle-orm/pg-core';
-import { UserRole } from '../modules/auth/auth.roles';
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  date,
+  numeric,
+  boolean,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { pgEnum } from "drizzle-orm/pg-core";
+import { UserRole } from "../modules/auth/auth.roles";
 
-export const userRoleEnum = pgEnum('user_role', [
+export const userRoleEnum = pgEnum("user_role", [
   UserRole.OWNER,
   UserRole.ADMIN,
-  UserRole.USER
+  UserRole.USER,
 ]);
 
-
-
-export const dailyCheckAppliesModeEnum = pgEnum('daily_check_applies_mode', [
-  'every_day',
-  'selected_days'
+export const dailyCheckAppliesModeEnum = pgEnum("daily_check_applies_mode", [
+  "every_day",
+  "selected_days",
 ]);
 
-export const dailyCheckStatusEnum = pgEnum('daily_check_status', [
-  'yes',
-  'no',
-  'skipped'
+export const dailyCheckStatusEnum = pgEnum("daily_check_status", [
+  "yes",
+  "no",
+  "skipped",
 ]);
 
 export const dailyReportLifecycleStatusEnum = pgEnum(
-  'daily_report_lifecycle_status',
-  [
-    'open',
-    'completed',
-    'partial',
-    'missed'
-  ]
+  "daily_report_lifecycle_status",
+  ["open", "completed", "partial", "missed"]
 );
 
-export const notes = pgTable('notes', {
-  id: uuid('id').defaultRandom().primaryKey(),
+export const notes = pgTable("notes", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-  userId: uuid('user_id')
+  userId: uuid("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: "cascade" }),
 
-  title: text('title').notNull(),
-  content: text('content'),
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  title: text("title").notNull(),
+  content: text("content"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-  role: userRoleEnum('role')
-    .notNull()
-    .default(UserRole.USER),
+  role: userRoleEnum("role").notNull().default(UserRole.USER),
 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 /**
@@ -112,55 +114,52 @@ export const authProviders = pgTable(
     providerProviderIdUnique: uniqueIndex(
       "auth_providers_provider_provider_id_idx"
     ).on(table.provider, table.providerId),
-    userIdx: index("auth_providers_user_id_idx").on(table.userId)
+    userIdx: index("auth_providers_user_id_idx").on(table.userId),
   })
 );
 
-export const weightEntries = pgTable('weight_entries', {
-  id: uuid('id').defaultRandom().primaryKey(),
+export const weightEntries = pgTable("weight_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-  userId: uuid('user_id')
+  userId: uuid("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: "cascade" }),
 
-  entryDate: date('entry_date').notNull(),
+  entryDate: date("entry_date").notNull(),
 
-  weight: numeric('weight', { precision: 5, scale: 2 }).notNull(),
+  weight: numeric("weight", { precision: 5, scale: 2 }).notNull(),
 
-  note: text('note'),
+  note: text("note"),
 
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const telegramLinkCodes = pgTable(
-  'telegram_link_codes',
-  {
-    code: text('code').primaryKey(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    expiresAt: timestamp('expires_at', {
-      withTimezone: true
-    }).notNull()
-  }
-);
-
-export const cars = pgTable('cars', {
-  id: uuid('id').defaultRandom().primaryKey(),
-
-  userId: uuid('user_id')
+export const telegramLinkCodes = pgTable("telegram_link_codes", {
+  code: text("code").primaryKey(),
+  userId: uuid("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-
-  name: text('name').notNull(),
-
-  createdAt: timestamp('created_at').defaultNow().notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", {
+    withTimezone: true,
+  }).notNull(),
 });
 
-export const repairTypes = pgTable('repair_types', {
-  id: uuid('id').defaultRandom().primaryKey(),
+export const cars = pgTable("cars", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-  name: text('name').notNull()
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
+  name: text("name").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const repairTypes = pgTable("repair_types", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  name: text("name").notNull(),
 });
 
 export const fuelLogs = pgTable(
@@ -205,33 +204,30 @@ export const fuelLogs = pgTable(
 );
 
 export const repairs = pgTable(
-  'repairs',
+  "repairs",
   {
-    id: uuid('id').defaultRandom().primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
 
-    carId: uuid('car_id')
+    carId: uuid("car_id")
       .notNull()
-      .references(() => cars.id, { onDelete: 'cascade' }),
+      .references(() => cars.id, { onDelete: "cascade" }),
 
-    repairTypeId: uuid('repair_type_id')
+    repairTypeId: uuid("repair_type_id")
       .notNull()
       .references(() => repairTypes.id),
 
-    odometer: integer('odometer'),
+    odometer: integer("odometer"),
 
-    price: numeric('price', { precision: 10, scale: 2 })
-      .notNull(),
+    price: numeric("price", { precision: 10, scale: 2 }).notNull(),
 
-    note: text('note'),
+    note: text("note"),
 
-    createdAt: timestamp('created_at')
-      .defaultNow()
-      .notNull()
+    createdAt: timestamp("created_at").defaultNow().notNull(),
   },
 
   (table) => ({
-    carIdx: index('repairs_car_idx').on(table.carId),
-    repairTypeIdx: index('repairs_type_idx').on(table.repairTypeId)
+    carIdx: index("repairs_car_idx").on(table.carId),
+    repairTypeIdx: index("repairs_type_idx").on(table.repairTypeId),
   })
 );
 
@@ -272,14 +268,18 @@ export const dailyCheckItems = pgTable(
     /**
      * Храним как csv:
      * "1,2,3,4,5"
-     *
-     * Это не идеальная вечная модель,
-     * но для текущего этапа проекта она простая и надёжная.
      */
     weekDaysCsv: text("week_days_csv").notNull().default(""),
 
     sortOrder: integer("sort_order").notNull().default(0),
-    isActive: boolean("is_active").notNull().default(true),
+
+    /**
+     * VERSIONING:
+     * startDate включительно
+     * endDate НЕ включительно
+     */
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -288,6 +288,10 @@ export const dailyCheckItems = pgTable(
     userSortIdx: index("daily_check_items_user_sort_idx").on(
       table.userId,
       table.sortOrder
+    ),
+    userStartDateIdx: index("daily_check_items_user_start_date_idx").on(
+      table.userId,
+      table.startDate
     ),
   })
 );
@@ -304,10 +308,6 @@ export const dailyReports = pgTable(
     /**
      * День, за который пользователь отчитывается.
      * Это НЕ createdAt.
-     *
-     * Пример:
-     * date = "2026-03-29"
-     * значит это отчёт именно за 29 марта.
      */
     date: date("date").notNull(),
 
@@ -318,56 +318,22 @@ export const dailyReports = pgTable(
     note: text("note"),
     musicOfDay: text("music_of_day"),
 
-    /**
-     * Жизненный статус отчёта:
-     *
-     * open      -> день ещё открыт, дедлайн не прошёл
-     * completed -> день закрыт и заполнен нормально
-     * partial   -> день закрыт, но заполнен не полностью
-     * missed    -> день закрыт и по сути пропущен
-     */
     status: dailyReportLifecycleStatusEnum("status")
       .notNull()
       .default("open"),
 
     /**
-     * До какого момента день можно заполнить "в рамках правила".
-     *
-     * Мы договорились:
-     * отчёт за день D можно нормально заполнить до 12:00 следующего дня
-     * в timezone пользователя.
-     *
-     * В базе храним UTC timestamp.
+     * Дедлайн: следующий день 12:00 по timezone пользователя
      */
     deadlineAt: timestamp("deadline_at", { withTimezone: true }),
 
-    /**
-     * Когда день был окончательно закрыт.
-     * Обычно:
-     * - null, пока день ещё open
-     * - timestamp, когда день перешёл в completed / partial / missed
-     */
     closedAt: timestamp("closed_at", { withTimezone: true }),
-
-    /**
-     * Когда пользователь последний раз сохранял осмысленные данные по дню.
-     */
     completedAt: timestamp("completed_at", { withTimezone: true }),
 
-    /**
-     * Если пользователь редактировал день уже после дедлайна.
-     */
     wasEditedAfterDeadline: boolean("was_edited_after_deadline")
       .notNull()
       .default(false),
 
-    /**
-     * Таймзона, по которой вычислялся deadlineAt.
-     * Например:
-     * - Europe/Kyiv
-     * - Europe/Berlin
-     * - UTC
-     */
     timeZone: text("time_zone").notNull().default("UTC"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),

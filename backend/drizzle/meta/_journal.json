@@ -8,6 +8,20 @@
       "when": 1774805121781,
       "tag": "0000_faithful_orphan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774901854935,
+      "tag": "0001_cloudy_ezekiel",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774904364930,
+      "tag": "0002_bouncy_harrier",
+      "breakpoints": true
     }
   ]
 }

@@ -4,28 +4,12 @@ import { AppError } from "../../errors/app-error";
  * =========================================================
  * DAILY CHECK TIME HELPERS
  * =========================================================
- *
- * Здесь вся логика, связанная с:
- * - timezone
- * - дедлайном daily check
- * - вычислением дня недели
- *
- * Мы специально выносим это отдельно, чтобы service.ts
- * не разрастался низкоуровневыми деталями работы с датой.
  */
 
 export const DAILY_CHECK_DEADLINE_HOUR = 12;
 
 /**
- * ---------------------------------------------------------
  * Проверка и нормализация timezone
- * ---------------------------------------------------------
- *
- * Если timezone не пришла:
- * - используем UTC
- *
- * Если timezone некорректная:
- * - кидаем ошибку 400
  */
 export function normalizeTimeZone(timeZone?: string | null): string {
   const normalized = timeZone?.trim() || "UTC";
@@ -39,15 +23,12 @@ export function normalizeTimeZone(timeZone?: string | null): string {
 }
 
 /**
- * ---------------------------------------------------------
- * Получение локальных частей даты в конкретной timezone
- * ---------------------------------------------------------
- *
- * Пример:
- * если сейчас UTC-время одно,
- * а timezone = Europe/Kyiv,
- * нам нужно узнать локальные year/month/day/hour именно для Kyiv.
+ * Текущая UTC дата как YYYY-MM-DD
  */
+export function getTodayUtcDateString(now = new Date()): string {
+  return now.toISOString().slice(0, 10);
+}
+
 function getDateTimeParts(date: Date, timeZone: string) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -75,14 +56,6 @@ function getDateTimeParts(date: Date, timeZone: string) {
   };
 }
 
-/**
- * ---------------------------------------------------------
- * Смещение timezone относительно UTC в миллисекундах
- * ---------------------------------------------------------
- *
- * Нужно для того, чтобы вручную собрать правильный UTC timestamp
- * для "следующий день 12:00 по локальному времени пользователя".
- */
 function getTimeZoneOffsetMs(timeZone: string, date: Date): number {
   const parts = getDateTimeParts(date, timeZone);
 
@@ -98,17 +71,6 @@ function getTimeZoneOffsetMs(timeZone: string, date: Date): number {
   return localAsUtcMs - date.getTime();
 }
 
-/**
- * ---------------------------------------------------------
- * Перевод локального времени timezone в UTC Date
- * ---------------------------------------------------------
- *
- * На вход:
- * - year/month/day/hour/minute/second в локальном времени timezone
- *
- * На выход:
- * - реальный UTC Date, который соответствует этому локальному времени
- */
 function zonedDateTimeToUtc(
   year: number,
   month: number,
@@ -122,10 +84,6 @@ function zonedDateTimeToUtc(
 
   let utcMs = localAsUtcMs;
 
-  /**
-   * Делаем несколько итераций, чтобы корректно пережить DST/смещения.
-   * Для нашего кейса этого более чем достаточно.
-   */
   for (let index = 0; index < 3; index += 1) {
     const offset = getTimeZoneOffsetMs(timeZone, new Date(utcMs));
     utcMs = localAsUtcMs - offset;
@@ -135,9 +93,7 @@ function zonedDateTimeToUtc(
 }
 
 /**
- * ---------------------------------------------------------
  * Добавить N дней к строке YYYY-MM-DD
- * ---------------------------------------------------------
  */
 export function addDaysToDateString(value: string, days: number): string {
   const cursor = new Date(`${value}T00:00:00.000Z`);
@@ -151,9 +107,7 @@ export function addDaysToDateString(value: string, days: number): string {
 }
 
 /**
- * ---------------------------------------------------------
  * День недели для YYYY-MM-DD
- * ---------------------------------------------------------
  *
  * Возвращаем:
  * 1 = Monday
@@ -168,22 +122,12 @@ export function getDateStringDayOfWeek(value: string): number {
 }
 
 /**
- * ---------------------------------------------------------
- * Сборка дедлайна daily report
- * ---------------------------------------------------------
- *
- * Для даты D дедлайн = следующий день 12:00
- * по timezone пользователя.
- *
- * Пример:
- * date = 2026-03-29
- * timezone = Europe/Kyiv
- *
- * значит дедлайн:
- * 2026-03-30 12:00 Europe/Kyiv
- * а в БД мы сохраняем это как UTC timestamp.
+ * Для даты D дедлайн = следующий день 12:00 по timezone пользователя
  */
-export function buildDailyReportDeadlineAt(date: string, timeZone: string): Date {
+export function buildDailyReportDeadlineAt(
+  date: string,
+  timeZone: string
+): Date {
   const nextDate = addDaysToDateString(date, 1);
   const [year, month, day] = nextDate.split("-").map(Number);
 
@@ -199,9 +143,7 @@ export function buildDailyReportDeadlineAt(date: string, timeZone: string): Date
 }
 
 /**
- * ---------------------------------------------------------
  * Проверка, прошёл ли дедлайн
- * ---------------------------------------------------------
  */
 export function isAfterDeadline(deadlineAt: Date, now = new Date()): boolean {
   return now.getTime() > deadlineAt.getTime();

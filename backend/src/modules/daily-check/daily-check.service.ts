@@ -1,9 +1,10 @@
 import { AppError } from "../../errors/app-error";
-import { dailyCheckRepository } from "./daily-check.repository";
+import { dailyCheckRepository, DailyCheckRangeEntryRow } from "./daily-check.repository";
 import {
   addDaysToDateString,
   buildDailyReportDeadlineAt,
   getDateStringDayOfWeek,
+  getTodayUtcDateString,
   isAfterDeadline,
   normalizeTimeZone,
 } from "./daily-check.time";
@@ -23,8 +24,16 @@ import {
 } from "./daily-check.types";
 
 class DailyCheckService {
-  private readonly allowedStatuses: DailyCheckStatus[] = ["yes", "no", "skipped"];
-  private readonly allowedAppliesModes = ["every_day", "selected_days"] as const;
+  private readonly allowedStatuses: DailyCheckStatus[] = [
+    "yes",
+    "no",
+    "skipped",
+  ];
+
+  private readonly allowedAppliesModes = [
+    "every_day",
+    "selected_days",
+  ] as const;
 
   private normalizeDate(value: string) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -32,6 +41,10 @@ class DailyCheckService {
     }
 
     return value;
+  }
+
+  private resolveEffectiveFrom(value?: string) {
+    return value ? this.normalizeDate(value) : getTodayUtcDateString();
   }
 
   private normalizeTitle(value: string) {
@@ -67,7 +80,10 @@ class DailyCheckService {
       .sort((a, b) => a - b);
 
     if (uniqueSorted.length === 0) {
-      throw new AppError("Для selected_days нужно передать хотя бы один день недели", 400);
+      throw new AppError(
+        "Для selected_days нужно передать хотя бы один день недели",
+        400
+      );
     }
 
     return uniqueSorted;
@@ -83,11 +99,11 @@ class DailyCheckService {
     return appliesMode;
   }
 
+  /**
+   * Версионность по датам уже фильтруется в repository.
+   * Здесь только weekly-логика.
+   */
   private isItemApplicable(item: DailyCheckItemDto, date: string) {
-    if (!item.isActive) {
-      return false;
-    }
-
     if (item.appliesMode === "every_day") {
       return true;
     }
@@ -126,21 +142,6 @@ class DailyCheckService {
     );
   }
 
-  /**
-   * ---------------------------------------------------------
-   * Решение финального статуса закрытого дня
-   * ---------------------------------------------------------
-   *
-   * completed:
-   * - все привычки отвечены
-   * - или привычек нет, но есть содержимое отчёта
-   *
-   * partial:
-   * - что-то есть, но день не доведён до полного состояния
-   *
-   * missed:
-   * - совсем пусто
-   */
   private buildClosedStatus(params: {
     habitsTotal: number;
     answeredCount: number;
@@ -189,22 +190,18 @@ class DailyCheckService {
 
     return {
       status: report.status,
-      deadlineAt: report.deadlineAt.toISOString(),
+      deadlineAt: report.deadlineAt?.toISOString() ?? fallback.deadlineAt,
       closedAt: report.closedAt?.toISOString() ?? null,
       completedAt: report.completedAt?.toISOString() ?? null,
       wasEditedAfterDeadline: report.wasEditedAfterDeadline,
       timeZone: report.timeZone,
-      isOverdue: isAfterDeadline(report.deadlineAt),
+      isOverdue: report.deadlineAt
+        ? isAfterDeadline(report.deadlineAt)
+        : fallback.isOverdue,
       canEdit: true,
     };
   }
 
-  /**
-   * ---------------------------------------------------------
-   * Если отчёт уже есть в БД, но он всё ещё open,
-   * а дедлайн уже прошёл — автоматически его закрываем.
-   * ---------------------------------------------------------
-   */
   private async syncStoredReportLifecycle(params: {
     userId: string;
     date: string;
@@ -213,14 +210,16 @@ class DailyCheckService {
     report: DailyReportRowDto | undefined;
     timeZone: string;
   }) {
-    const { userId, date, habitsTotal, answeredCount, report, timeZone } = params;
+    const { userId, date, habitsTotal, answeredCount, report, timeZone } =
+      params;
 
     if (!report) {
       return undefined;
     }
 
     const effectiveTimeZone = report.timeZone || timeZone;
-    const deadlineAt = report.deadlineAt ?? buildDailyReportDeadlineAt(date, effectiveTimeZone);
+    const deadlineAt =
+      report.deadlineAt ?? buildDailyReportDeadlineAt(date, effectiveTimeZone);
 
     if (report.status !== "open" || !isAfterDeadline(deadlineAt)) {
       return report;
@@ -245,12 +244,6 @@ class DailyCheckService {
     });
   }
 
-  /**
-   * ---------------------------------------------------------
-   * Если отчёт в БД ещё не создан,
-   * мы всё равно можем вычислить lifecycle для ответа.
-   * ---------------------------------------------------------
-   */
   private buildDerivedLifecycle(params: {
     date: string;
     timeZone: string;
@@ -261,7 +254,8 @@ class DailyCheckService {
     const { date, timeZone, habitsTotal, answeredCount, report } = params;
 
     const effectiveTimeZone = report?.timeZone || timeZone;
-    const deadlineAt = report?.deadlineAt ?? buildDailyReportDeadlineAt(date, effectiveTimeZone);
+    const deadlineAt =
+      report?.deadlineAt ?? buildDailyReportDeadlineAt(date, effectiveTimeZone);
     const overdue = isAfterDeadline(deadlineAt);
 
     if (report) {
@@ -295,17 +289,24 @@ class DailyCheckService {
     };
   }
 
-  private async resolveDayState(userId: string, date: string, incomingTimeZone?: string) {
+  private async resolveDayState(
+    userId: string,
+    date: string,
+    incomingTimeZone?: string
+  ) {
     const normalizedDate = this.normalizeDate(date);
     const timeZone = normalizeTimeZone(incomingTimeZone);
 
     const [items, report, entries] = await Promise.all([
-      dailyCheckRepository.getItemsByUser(userId),
+      dailyCheckRepository.getItemsByUserAndDate(userId, normalizedDate),
       dailyCheckRepository.getReportByUserAndDate(userId, normalizedDate),
       dailyCheckRepository.getEntriesByUserAndDate(userId, normalizedDate),
     ]);
 
-    const applicableItems = items.filter((item) => this.isItemApplicable(item, normalizedDate));
+    const applicableItems = items.filter((item: DailyCheckItemDto) =>
+      this.isItemApplicable(item, normalizedDate)
+    );
+
     const answeredCount = entries.length;
 
     const syncedReport = await this.syncStoredReportLifecycle({
@@ -320,7 +321,6 @@ class DailyCheckService {
     return {
       date: normalizedDate,
       timeZone,
-      items,
       applicableItems,
       report: syncedReport ?? report,
       entries,
@@ -333,6 +333,7 @@ class DailyCheckService {
 
   async createItem(userId: string, dto: CreateDailyCheckItemDto) {
     const appliesMode = this.resolveAppliesMode(dto.appliesMode);
+    const effectiveFrom = this.resolveEffectiveFrom(dto.effectiveFrom);
 
     return dailyCheckRepository.createItem(userId, {
       title: this.normalizeTitle(dto.title),
@@ -340,7 +341,7 @@ class DailyCheckService {
       appliesMode,
       weekDays: this.normalizeWeekDays(dto.weekDays, appliesMode),
       sortOrder: dto.sortOrder ?? 0,
-      isActive: dto.isActive ?? true,
+      effectiveFrom,
     });
   }
 
@@ -355,18 +356,37 @@ class DailyCheckService {
       throw new AppError("Нет доступа к этой привычке", 403);
     }
 
+    if (existing.endDate !== null) {
+      throw new AppError(
+        "Нельзя изменять уже закрытую версию привычки",
+        400
+      );
+    }
+
     const appliesMode = dto.appliesMode ?? existing.appliesMode;
+    const effectiveFrom = this.resolveEffectiveFrom(dto.effectiveFrom);
+
+    if (effectiveFrom < existing.startDate) {
+      throw new AppError(
+        "effectiveFrom не может быть раньше startDate текущей версии",
+        400
+      );
+    }
 
     const updated = await dailyCheckRepository.updateItem(itemId, {
-      title: dto.title !== undefined ? this.normalizeTitle(dto.title) : undefined,
-      emoji: this.normalizeEmoji(dto.emoji),
+      title:
+        dto.title !== undefined ? this.normalizeTitle(dto.title) : existing.title,
+      emoji:
+        dto.emoji !== undefined
+          ? this.normalizeEmoji(dto.emoji) ?? null
+          : existing.emoji,
       appliesMode,
       weekDays:
         dto.weekDays !== undefined || dto.appliesMode !== undefined
           ? this.normalizeWeekDays(dto.weekDays ?? existing.weekDays, appliesMode)
-          : undefined,
-      sortOrder: dto.sortOrder,
-      isActive: dto.isActive,
+          : existing.weekDays,
+      sortOrder: dto.sortOrder ?? existing.sortOrder,
+      effectiveFrom,
     });
 
     if (!updated) {
@@ -387,13 +407,27 @@ class DailyCheckService {
       throw new AppError("Нет доступа к этой привычке", 403);
     }
 
-    await dailyCheckRepository.deleteItem(itemId);
+    if (existing.endDate !== null) {
+      return;
+    }
+
+    const effectiveFrom = getTodayUtcDateString();
+
+    if (effectiveFrom < existing.startDate) {
+      throw new AppError("Нельзя закрыть привычку раньше её startDate", 400);
+    }
+
+    await dailyCheckRepository.deleteItem(itemId, effectiveFrom);
   }
 
-  async getDay(userId: string, date: string, incomingTimeZone?: string): Promise<DailyDayResponseDto> {
+  async getDay(
+    userId: string,
+    date: string,
+    incomingTimeZone?: string
+  ): Promise<DailyDayResponseDto> {
     const state = await this.resolveDayState(userId, date, incomingTimeZone);
 
-    const items = state.applicableItems.map((item) => {
+    const items = state.applicableItems.map((item: DailyCheckItemDto) => {
       const entry = state.entries.find((current) => current.itemId === item.id);
 
       return {
@@ -403,7 +437,6 @@ class DailyCheckService {
         appliesMode: item.appliesMode,
         weekDays: item.weekDays,
         sortOrder: item.sortOrder,
-        isActive: item.isActive,
         status: entry?.status ?? null,
         skipReason: entry?.skipReason ?? null,
       };
@@ -441,13 +474,23 @@ class DailyCheckService {
       throw new AppError("entries должен быть массивом", 400);
     }
 
-    const items = await dailyCheckRepository.getItemsByUser(userId);
-    const applicableItems = items.filter((item) => this.isItemApplicable(item, normalizedDate));
+    const items = await dailyCheckRepository.getItemsByUserAndDate(
+      userId,
+      normalizedDate
+    );
+
+    const applicableItems = items.filter((item: DailyCheckItemDto) =>
+      this.isItemApplicable(item, normalizedDate)
+    );
+
     const applicableItemIds = new Set(applicableItems.map((item) => item.id));
 
     for (const entry of dto.entries) {
       if (!applicableItemIds.has(entry.itemId)) {
-        throw new AppError(`Привычка ${entry.itemId} недоступна для этой даты`, 400);
+        throw new AppError(
+          `Привычка ${entry.itemId} недоступна для этой даты`,
+          400
+        );
       }
 
       if (!this.allowedStatuses.includes(entry.status)) {
@@ -466,7 +509,10 @@ class DailyCheckService {
     const uniqueEntryIds = new Set(dto.entries.map((entry) => entry.itemId));
 
     if (uniqueEntryIds.size !== dto.entries.length) {
-      throw new AppError("Одна привычка не может повторяться несколько раз в одном дне", 400);
+      throw new AppError(
+        "Одна привычка не может повторяться несколько раз в одном дне",
+        400
+      );
     }
 
     if (dto.report?.moodScore !== undefined && dto.report?.moodScore !== null) {
@@ -479,11 +525,14 @@ class DailyCheckService {
       }
     }
 
-    const normalizedEntries: SaveDailyCheckEntryDto[] = dto.entries.map((entry) => ({
-      itemId: entry.itemId,
-      status: entry.status,
-      skipReason: entry.status === "skipped" ? entry.skipReason?.trim() ?? null : null,
-    }));
+    const normalizedEntries: SaveDailyCheckEntryDto[] = dto.entries.map(
+      (entry) => ({
+        itemId: entry.itemId,
+        status: entry.status,
+        skipReason:
+          entry.status === "skipped" ? entry.skipReason?.trim() ?? null : null,
+      })
+    );
 
     const normalizedReport = {
       moodScore: dto.report?.moodScore ?? null,
@@ -493,10 +542,14 @@ class DailyCheckService {
       musicOfDay: dto.report?.musicOfDay?.trim() || null,
     };
 
-    const existingReport = await dailyCheckRepository.getReportByUserAndDate(userId, normalizedDate);
+    const existingReport = await dailyCheckRepository.getReportByUserAndDate(
+      userId,
+      normalizedDate
+    );
 
     const deadlineAt =
-      existingReport?.deadlineAt ?? buildDailyReportDeadlineAt(normalizedDate, timeZone);
+      existingReport?.deadlineAt ??
+      buildDailyReportDeadlineAt(normalizedDate, timeZone);
 
     const now = new Date();
     const overdue = isAfterDeadline(deadlineAt, now);
@@ -511,7 +564,11 @@ class DailyCheckService {
       : "open";
 
     await dailyCheckRepository.deleteEntriesByUserAndDate(userId, normalizedDate);
-    await dailyCheckRepository.createEntries(userId, normalizedDate, normalizedEntries);
+    await dailyCheckRepository.createEntries(
+      userId,
+      normalizedDate,
+      normalizedEntries
+    );
 
     await dailyCheckRepository.upsertReport(userId, normalizedDate, {
       ...normalizedReport,
@@ -519,20 +576,30 @@ class DailyCheckService {
       deadlineAt,
       closedAt: overdue ? now : null,
       completedAt: hasReportContent || normalizedEntries.length > 0 ? now : null,
-      wasEditedAfterDeadline: overdue || existingReport?.wasEditedAfterDeadline || false,
+      wasEditedAfterDeadline:
+        overdue || existingReport?.wasEditedAfterDeadline || false,
       timeZone,
     });
 
     return this.getDay(userId, normalizedDate, timeZone);
   }
 
-  async getRange(userId: string, from: string, to: string, incomingTimeZone?: string) {
+  async getRange(
+    userId: string,
+    from: string,
+    to: string,
+    incomingTimeZone?: string
+  ) {
     const normalizedFrom = this.normalizeDate(from);
     const normalizedTo = this.normalizeDate(to);
     const timeZone = normalizeTimeZone(incomingTimeZone);
 
     const [items, reports, entries] = await Promise.all([
-      dailyCheckRepository.getItemsByUser(userId),
+      dailyCheckRepository.getItemsByUserInRange(
+        userId,
+        normalizedFrom,
+        normalizedTo
+      ),
       dailyCheckRepository.getReportsInRange(userId, normalizedFrom, normalizedTo),
       dailyCheckRepository.getEntriesInRange(userId, normalizedFrom, normalizedTo),
     ]);
@@ -540,8 +607,16 @@ class DailyCheckService {
     const syncedReportsMap = new Map<string, DailyReportRowDto>();
 
     for (const report of reports) {
-      const dayEntries = entries.filter((entry) => entry.date === report.date);
-      const applicableItems = items.filter((item) => this.isItemApplicable(item, report.date));
+      const dayEntries = entries.filter(
+        (entry: DailyCheckRangeEntryRow) => entry.date === report.date
+      );
+
+      const applicableItems = items.filter(
+        (item: DailyCheckItemDto) =>
+          item.startDate <= report.date &&
+          (item.endDate === null || item.endDate > report.date) &&
+          this.isItemApplicable(item, report.date)
+      );
 
       const synced = await this.syncStoredReportLifecycle({
         userId,
@@ -564,19 +639,32 @@ class DailyCheckService {
     }
 
     return dates.map((date) => {
-      const applicableItems = items.filter((item) => this.isItemApplicable(item, date));
-      const dayEntries = entries.filter((entry) => entry.date === date);
+      const applicableItems = items.filter(
+        (item: DailyCheckItemDto) =>
+          item.startDate <= date &&
+          (item.endDate === null || item.endDate > date) &&
+          this.isItemApplicable(item, date)
+      );
+
+      const dayEntries = entries.filter(
+        (entry: DailyCheckRangeEntryRow) => entry.date === date
+      );
+
       const report = syncedReportsMap.get(date);
 
       const habitsTotal = applicableItems.length;
       const yesCount = dayEntries.filter((entry) => entry.status === "yes").length;
       const noCount = dayEntries.filter((entry) => entry.status === "no").length;
-      const skippedCount = dayEntries.filter((entry) => entry.status === "skipped").length;
+      const skippedCount = dayEntries.filter(
+        (entry) => entry.status === "skipped"
+      ).length;
 
       const effectiveTotal = yesCount + noCount;
       const completionRate = effectiveTotal > 0 ? yesCount / effectiveTotal : 0;
       const skipRatio = habitsTotal > 0 ? skippedCount / habitsTotal : 0;
-      const finalScore = Number((completionRate * (1 - skipRatio * 0.5)).toFixed(4));
+      const finalScore = Number(
+        (completionRate * (1 - skipRatio * 0.5)).toFixed(4)
+      );
 
       const lifecycle = this.buildDerivedLifecycle({
         date,

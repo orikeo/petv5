@@ -1,14 +1,67 @@
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gt, gte, isNull, lte, or } from "drizzle-orm";
 import { db } from "../../db";
-import { dailyCheckEntries, dailyCheckItems, dailyReports } from "../../db/schema";
+import {
+  dailyCheckEntries,
+  dailyCheckItems,
+  dailyReports,
+} from "../../db/schema";
 import {
   CreateDailyCheckItemDto,
+  DailyCheckAppliesMode,
   DailyCheckItemDto,
+  DailyCheckStatus,
+  DailyReportLifecycleStatus,
   DailyReportRowDto,
   SaveDailyCheckEntryDto,
   UpdateDailyCheckItemDto,
   UpsertDailyReportDto,
 } from "./daily-check.types";
+
+type DailyCheckItemRow = {
+  id: string;
+  userId: string;
+  title: string;
+  emoji: string | null;
+  appliesMode: string;
+  weekDaysCsv: string;
+  sortOrder: number | null;
+  startDate: string;
+  endDate: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type DailyCheckEntryRow = {
+  id: string;
+  itemId: string;
+  status: DailyCheckStatus;
+  skipReason: string | null;
+  date: string;
+};
+
+export type DailyCheckRangeEntryRow = {
+  itemId: string;
+  date: string;
+  status: DailyCheckStatus;
+};
+
+type DailyReportRow = {
+  id: string;
+  date: string;
+  moodScore: number | null;
+  moodComment: string | null;
+  summary: string | null;
+  note: string | null;
+  musicOfDay: string | null;
+  status: DailyReportLifecycleStatus;
+  deadlineAt: Date | null;
+  closedAt: Date | null;
+  completedAt: Date | null;
+  wasEditedAfterDeadline: boolean;
+  timeZone: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 class DailyCheckRepository {
   private mapWeekDaysCsvToArray(value: string): number[] {
@@ -26,49 +79,26 @@ class DailyCheckRepository {
     return value.join(",");
   }
 
-  private mapItem(row: {
-    id: string;
-    userId: string;
-    title: string;
-    emoji: string | null;
-    appliesMode: "every_day" | "selected_days";
-    weekDaysCsv: string;
-    sortOrder: number;
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-  }): DailyCheckItemDto {
+  private mapItem(row: DailyCheckItemRow): DailyCheckItemDto {
+    const appliesMode: DailyCheckAppliesMode =
+      row.appliesMode === "selected_days" ? "selected_days" : "every_day";
+
     return {
       id: row.id,
       userId: row.userId,
       title: row.title,
       emoji: row.emoji,
-      appliesMode: row.appliesMode,
+      appliesMode,
       weekDays: this.mapWeekDaysCsvToArray(row.weekDaysCsv),
-      sortOrder: row.sortOrder,
-      isActive: row.isActive,
+      sortOrder: row.sortOrder ?? 0,
+      startDate: row.startDate,
+      endDate: row.endDate,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
   }
 
-  private mapReport(row: {
-    id: string;
-    date: string;
-    moodScore: number | null;
-    moodComment: string | null;
-    summary: string | null;
-    note: string | null;
-    musicOfDay: string | null;
-    status: "open" | "completed" | "partial" | "missed";
-    deadlineAt: Date | null;
-    closedAt: Date | null;
-    completedAt: Date | null;
-    wasEditedAfterDeadline: boolean;
-    timeZone: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }): DailyReportRowDto {
+  private mapReport(row: DailyReportRow): DailyReportRowDto {
     return {
       id: row.id,
       date: row.date,
@@ -88,8 +118,12 @@ class DailyCheckRepository {
     };
   }
 
-  async getItemsByUser(userId: string) {
-    const rows = await db
+  /**
+   * Текущий список привычек для экрана управления.
+   * Показываем только активные версии (endDate is null).
+   */
+  async getItemsByUser(userId: string): Promise<DailyCheckItemDto[]> {
+    const rows: DailyCheckItemRow[] = await db
       .select({
         id: dailyCheckItems.id,
         userId: dailyCheckItems.userId,
@@ -98,19 +132,22 @@ class DailyCheckRepository {
         appliesMode: dailyCheckItems.appliesMode,
         weekDaysCsv: dailyCheckItems.weekDaysCsv,
         sortOrder: dailyCheckItems.sortOrder,
-        isActive: dailyCheckItems.isActive,
+        startDate: dailyCheckItems.startDate,
+        endDate: dailyCheckItems.endDate,
         createdAt: dailyCheckItems.createdAt,
         updatedAt: dailyCheckItems.updatedAt,
       })
       .from(dailyCheckItems)
-      .where(eq(dailyCheckItems.userId, userId))
+      .where(
+        and(eq(dailyCheckItems.userId, userId), isNull(dailyCheckItems.endDate))
+      )
       .orderBy(asc(dailyCheckItems.sortOrder), asc(dailyCheckItems.createdAt));
 
     return rows.map((row) => this.mapItem(row));
   }
 
-  async getItemById(id: string) {
-    const [row] = await db
+  async getItemById(id: string): Promise<DailyCheckItemDto | undefined> {
+    const [row]: DailyCheckItemRow[] = await db
       .select({
         id: dailyCheckItems.id,
         userId: dailyCheckItems.userId,
@@ -119,7 +156,8 @@ class DailyCheckRepository {
         appliesMode: dailyCheckItems.appliesMode,
         weekDaysCsv: dailyCheckItems.weekDaysCsv,
         sortOrder: dailyCheckItems.sortOrder,
-        isActive: dailyCheckItems.isActive,
+        startDate: dailyCheckItems.startDate,
+        endDate: dailyCheckItems.endDate,
         createdAt: dailyCheckItems.createdAt,
         updatedAt: dailyCheckItems.updatedAt,
       })
@@ -129,12 +167,95 @@ class DailyCheckRepository {
     return row ? this.mapItem(row) : undefined;
   }
 
+  /**
+   * Версии привычек, которые действуют на конкретную дату.
+   *
+   * startDate <= date
+   * endDate IS NULL OR endDate > date
+   *
+   * endDate НЕ включительно.
+   */
+  async getItemsByUserAndDate(
+    userId: string,
+    date: string
+  ): Promise<DailyCheckItemDto[]> {
+    const rows: DailyCheckItemRow[] = await db
+      .select({
+        id: dailyCheckItems.id,
+        userId: dailyCheckItems.userId,
+        title: dailyCheckItems.title,
+        emoji: dailyCheckItems.emoji,
+        appliesMode: dailyCheckItems.appliesMode,
+        weekDaysCsv: dailyCheckItems.weekDaysCsv,
+        sortOrder: dailyCheckItems.sortOrder,
+        startDate: dailyCheckItems.startDate,
+        endDate: dailyCheckItems.endDate,
+        createdAt: dailyCheckItems.createdAt,
+        updatedAt: dailyCheckItems.updatedAt,
+      })
+      .from(dailyCheckItems)
+      .where(
+        and(
+          eq(dailyCheckItems.userId, userId),
+          lte(dailyCheckItems.startDate, date),
+          or(isNull(dailyCheckItems.endDate), gt(dailyCheckItems.endDate, date))
+        )
+      )
+      .orderBy(asc(dailyCheckItems.sortOrder), asc(dailyCheckItems.createdAt));
+
+    return rows.map((row) => this.mapItem(row));
+  }
+
+  /**
+   * Все версии привычек, которые пересекают диапазон.
+   * Нужно для /range.
+   */
+  async getItemsByUserInRange(
+    userId: string,
+    from: string,
+    to: string
+  ): Promise<DailyCheckItemDto[]> {
+    const rows: DailyCheckItemRow[] = await db
+      .select({
+        id: dailyCheckItems.id,
+        userId: dailyCheckItems.userId,
+        title: dailyCheckItems.title,
+        emoji: dailyCheckItems.emoji,
+        appliesMode: dailyCheckItems.appliesMode,
+        weekDaysCsv: dailyCheckItems.weekDaysCsv,
+        sortOrder: dailyCheckItems.sortOrder,
+        startDate: dailyCheckItems.startDate,
+        endDate: dailyCheckItems.endDate,
+        createdAt: dailyCheckItems.createdAt,
+        updatedAt: dailyCheckItems.updatedAt,
+      })
+      .from(dailyCheckItems)
+      .where(
+        and(
+          eq(dailyCheckItems.userId, userId),
+          lte(dailyCheckItems.startDate, to),
+          or(isNull(dailyCheckItems.endDate), gt(dailyCheckItems.endDate, from))
+        )
+      )
+      .orderBy(asc(dailyCheckItems.sortOrder), asc(dailyCheckItems.createdAt));
+
+    return rows.map((row) => this.mapItem(row));
+  }
+
   async createItem(
     userId: string,
-    dto: Required<Pick<CreateDailyCheckItemDto, "title" | "appliesMode" | "weekDays">> &
-      Omit<CreateDailyCheckItemDto, "title" | "appliesMode" | "weekDays">
-  ) {
-    const [row] = await db
+    dto: Required<
+      Pick<
+        CreateDailyCheckItemDto,
+        "title" | "appliesMode" | "weekDays" | "effectiveFrom"
+      >
+    > &
+      Omit<
+        CreateDailyCheckItemDto,
+        "title" | "appliesMode" | "weekDays" | "effectiveFrom"
+      >
+  ): Promise<DailyCheckItemDto> {
+    const [row]: DailyCheckItemRow[] = await db
       .insert(dailyCheckItems)
       .values({
         userId,
@@ -143,7 +264,7 @@ class DailyCheckRepository {
         appliesMode: dto.appliesMode,
         weekDaysCsv: this.mapWeekDaysArrayToCsv(dto.weekDays),
         sortOrder: dto.sortOrder ?? 0,
-        isActive: dto.isActive ?? true,
+        startDate: dto.effectiveFrom,
       })
       .returning({
         id: dailyCheckItems.id,
@@ -153,7 +274,8 @@ class DailyCheckRepository {
         appliesMode: dailyCheckItems.appliesMode,
         weekDaysCsv: dailyCheckItems.weekDaysCsv,
         sortOrder: dailyCheckItems.sortOrder,
-        isActive: dailyCheckItems.isActive,
+        startDate: dailyCheckItems.startDate,
+        endDate: dailyCheckItems.endDate,
         createdAt: dailyCheckItems.createdAt,
         updatedAt: dailyCheckItems.updatedAt,
       });
@@ -161,51 +283,79 @@ class DailyCheckRepository {
     return this.mapItem(row);
   }
 
-  async updateItem(id: string, dto: UpdateDailyCheckItemDto) {
-    const updateData: Partial<{
+  /**
+   * versioned update:
+   * 1) закрываем старую версию endDate = effectiveFrom
+   * 2) создаём новую версию startDate = effectiveFrom
+   */
+  async updateItem(
+    id: string,
+    dto: Required<Pick<UpdateDailyCheckItemDto, "effectiveFrom">> & {
       title: string;
       emoji: string | null;
-      appliesMode: "every_day" | "selected_days";
-      weekDaysCsv: string;
+      appliesMode: DailyCheckAppliesMode;
+      weekDays: number[];
       sortOrder: number;
-      isActive: boolean;
-      updatedAt: Date;
-    }> = {
-      updatedAt: new Date(),
-    };
-
-    if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.emoji !== undefined) updateData.emoji = dto.emoji;
-    if (dto.appliesMode !== undefined) updateData.appliesMode = dto.appliesMode;
-    if (dto.weekDays !== undefined) {
-      updateData.weekDaysCsv = this.mapWeekDaysArrayToCsv(dto.weekDays);
     }
-    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
-    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+  ): Promise<DailyCheckItemDto | undefined> {
+    const existing = await this.getItemById(id);
 
-    const [row] = await db
-      .update(dailyCheckItems)
-      .set(updateData)
-      .where(eq(dailyCheckItems.id, id))
-      .returning({
-        id: dailyCheckItems.id,
-        userId: dailyCheckItems.userId,
-        title: dailyCheckItems.title,
-        emoji: dailyCheckItems.emoji,
-        appliesMode: dailyCheckItems.appliesMode,
-        weekDaysCsv: dailyCheckItems.weekDaysCsv,
-        sortOrder: dailyCheckItems.sortOrder,
-        isActive: dailyCheckItems.isActive,
-        createdAt: dailyCheckItems.createdAt,
-        updatedAt: dailyCheckItems.updatedAt,
-      });
+    if (!existing) {
+      return undefined;
+    }
 
-    return row ? this.mapItem(row) : undefined;
+    return db.transaction(async (tx) => {
+      await tx
+        .update(dailyCheckItems)
+        .set({
+          endDate: dto.effectiveFrom,
+          updatedAt: new Date(),
+        })
+        .where(eq(dailyCheckItems.id, id));
+
+      const [created]: DailyCheckItemRow[] = await tx
+        .insert(dailyCheckItems)
+        .values({
+          userId: existing.userId,
+          title: dto.title,
+          emoji: dto.emoji,
+          appliesMode: dto.appliesMode,
+          weekDaysCsv: this.mapWeekDaysArrayToCsv(dto.weekDays),
+          sortOrder: dto.sortOrder,
+          startDate: dto.effectiveFrom,
+        })
+        .returning({
+          id: dailyCheckItems.id,
+          userId: dailyCheckItems.userId,
+          title: dailyCheckItems.title,
+          emoji: dailyCheckItems.emoji,
+          appliesMode: dailyCheckItems.appliesMode,
+          weekDaysCsv: dailyCheckItems.weekDaysCsv,
+          sortOrder: dailyCheckItems.sortOrder,
+          startDate: dailyCheckItems.startDate,
+          endDate: dailyCheckItems.endDate,
+          createdAt: dailyCheckItems.createdAt,
+          updatedAt: dailyCheckItems.updatedAt,
+        });
+
+      return this.mapItem(created);
+    });
   }
 
-  async deleteItem(id: string) {
+  /**
+   * Удаление теперь не физическое.
+   * Мы просто закрываем текущую версию.
+   */
+  async deleteItem(
+    id: string,
+    effectiveFrom: string
+  ): Promise<{ id: string } | undefined> {
     const [row] = await db
-      .delete(dailyCheckItems)
+      .update(dailyCheckItems)
+      .set({
+        endDate: effectiveFrom,
+        updatedAt: new Date(),
+      })
       .where(eq(dailyCheckItems.id, id))
       .returning({
         id: dailyCheckItems.id,
@@ -214,7 +364,10 @@ class DailyCheckRepository {
     return row;
   }
 
-  async getEntriesByUserAndDate(userId: string, date: string) {
+  async getEntriesByUserAndDate(
+    userId: string,
+    date: string
+  ): Promise<DailyCheckEntryRow[]> {
     return db
       .select({
         id: dailyCheckEntries.id,
@@ -224,16 +377,24 @@ class DailyCheckRepository {
         date: dailyCheckEntries.date,
       })
       .from(dailyCheckEntries)
-      .where(and(eq(dailyCheckEntries.userId, userId), eq(dailyCheckEntries.date, date)));
+      .where(
+        and(eq(dailyCheckEntries.userId, userId), eq(dailyCheckEntries.date, date))
+      );
   }
 
-  async deleteEntriesByUserAndDate(userId: string, date: string) {
+  async deleteEntriesByUserAndDate(userId: string, date: string): Promise<void> {
     await db
       .delete(dailyCheckEntries)
-      .where(and(eq(dailyCheckEntries.userId, userId), eq(dailyCheckEntries.date, date)));
+      .where(
+        and(eq(dailyCheckEntries.userId, userId), eq(dailyCheckEntries.date, date))
+      );
   }
 
-  async createEntries(userId: string, date: string, entries: SaveDailyCheckEntryDto[]) {
+  async createEntries(
+    userId: string,
+    date: string,
+    entries: SaveDailyCheckEntryDto[]
+  ): Promise<DailyCheckEntryRow[]> {
     if (entries.length === 0) {
       return [];
     }
@@ -259,8 +420,11 @@ class DailyCheckRepository {
       });
   }
 
-  async getReportByUserAndDate(userId: string, date: string) {
-    const [row] = await db
+  async getReportByUserAndDate(
+    userId: string,
+    date: string
+  ): Promise<DailyReportRowDto | undefined> {
+    const [row]: DailyReportRow[] = await db
       .select({
         id: dailyReports.id,
         date: dailyReports.date,
@@ -284,11 +448,15 @@ class DailyCheckRepository {
     return row ? this.mapReport(row) : undefined;
   }
 
-  async upsertReport(userId: string, date: string, dto: UpsertDailyReportDto) {
+  async upsertReport(
+    userId: string,
+    date: string,
+    dto: UpsertDailyReportDto
+  ): Promise<DailyReportRowDto> {
     const existing = await this.getReportByUserAndDate(userId, date);
 
     if (!existing) {
-      const [created] = await db
+      const [created]: DailyReportRow[] = await db
         .insert(dailyReports)
         .values({
           userId,
@@ -327,7 +495,7 @@ class DailyCheckRepository {
       return this.mapReport(created);
     }
 
-    const [updated] = await db
+    const [updated]: DailyReportRow[] = await db
       .update(dailyReports)
       .set({
         moodScore: dto.moodScore,
@@ -365,8 +533,12 @@ class DailyCheckRepository {
     return this.mapReport(updated);
   }
 
-  async getReportsInRange(userId: string, from: string, to: string) {
-    const rows = await db
+  async getReportsInRange(
+    userId: string,
+    from: string,
+    to: string
+  ): Promise<DailyReportRowDto[]> {
+    const rows: DailyReportRow[] = await db
       .select({
         id: dailyReports.id,
         date: dailyReports.date,
@@ -396,7 +568,11 @@ class DailyCheckRepository {
     return rows.map((row) => this.mapReport(row));
   }
 
-  async getEntriesInRange(userId: string, from: string, to: string) {
+  async getEntriesInRange(
+    userId: string,
+    from: string,
+    to: string
+  ): Promise<DailyCheckRangeEntryRow[]> {
     return db
       .select({
         itemId: dailyCheckEntries.itemId,
