@@ -338,6 +338,28 @@ class DailyCheckRepository {
           updatedAt: dailyCheckItems.updatedAt,
         });
 
+      /**
+       * Если пользователь меняет привычку с даты effectiveFrom,
+       * уже существующие записи этого же дня (и потенциально будущих дней)
+       * должны продолжить относиться к новой версии привычки.
+       *
+       * Иначе после versioned update остаются "осиротевшие" entries на старый itemId,
+       * из-за чего overview может показывать невозможные значения вроде 6/5.
+       */
+      await tx
+        .update(dailyCheckEntries)
+        .set({
+          itemId: created.id,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(dailyCheckEntries.userId, existing.userId),
+            eq(dailyCheckEntries.itemId, existing.id),
+            gte(dailyCheckEntries.date, dto.effectiveFrom)
+          )
+        );
+
       return this.mapItem(created);
     });
   }

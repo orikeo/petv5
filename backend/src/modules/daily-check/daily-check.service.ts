@@ -112,6 +112,19 @@ class DailyCheckService {
     return item.weekDays.includes(dayOfWeek);
   }
 
+  /**
+   * Оставляем только записи, которые относятся к актуальным привычкам этой даты.
+   *
+   * Важно: helper generic, чтобы не терялись поля entry.status / entry.skipReason.
+   */
+  private filterEntriesForApplicableItems<T extends { itemId: string }>(
+    entries: T[],
+    applicableItems: DailyCheckItemDto[]
+  ): T[] {
+    const applicableIds = new Set(applicableItems.map((item) => item.id));
+    return entries.filter((entry) => applicableIds.has(entry.itemId));
+  }
+
   private hasMeaningfulText(value: string | null | undefined) {
     return Boolean(value?.trim());
   }
@@ -307,7 +320,12 @@ class DailyCheckService {
       this.isItemApplicable(item, normalizedDate)
     );
 
-    const answeredCount = entries.length;
+    const filteredEntries = this.filterEntriesForApplicableItems(
+      entries,
+      applicableItems
+    );
+
+    const answeredCount = filteredEntries.length;
 
     const syncedReport = await this.syncStoredReportLifecycle({
       userId,
@@ -323,7 +341,7 @@ class DailyCheckService {
       timeZone,
       applicableItems,
       report: syncedReport ?? report,
-      entries,
+      entries: filteredEntries,
     };
   }
 
@@ -618,11 +636,16 @@ class DailyCheckService {
           this.isItemApplicable(item, report.date)
       );
 
+      const filteredDayEntries = this.filterEntriesForApplicableItems(
+        dayEntries,
+        applicableItems
+      );
+
       const synced = await this.syncStoredReportLifecycle({
         userId,
         date: report.date,
         habitsTotal: applicableItems.length,
-        answeredCount: dayEntries.length,
+        answeredCount: filteredDayEntries.length,
         report,
         timeZone,
       });
@@ -650,12 +673,21 @@ class DailyCheckService {
         (entry: DailyCheckRangeEntryRow) => entry.date === date
       );
 
+      const filteredDayEntries = this.filterEntriesForApplicableItems(
+        dayEntries,
+        applicableItems
+      );
+
       const report = syncedReportsMap.get(date);
 
       const habitsTotal = applicableItems.length;
-      const yesCount = dayEntries.filter((entry) => entry.status === "yes").length;
-      const noCount = dayEntries.filter((entry) => entry.status === "no").length;
-      const skippedCount = dayEntries.filter(
+      const yesCount = filteredDayEntries.filter(
+        (entry) => entry.status === "yes"
+      ).length;
+      const noCount = filteredDayEntries.filter(
+        (entry) => entry.status === "no"
+      ).length;
+      const skippedCount = filteredDayEntries.filter(
         (entry) => entry.status === "skipped"
       ).length;
 
@@ -670,7 +702,7 @@ class DailyCheckService {
         date,
         timeZone,
         habitsTotal,
-        answeredCount: dayEntries.length,
+        answeredCount: filteredDayEntries.length,
         report,
       });
 
