@@ -22,6 +22,13 @@
       "when": 1774904364930,
       "tag": "0002_bouncy_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774991463096,
+      "tag": "0003_confused_starfox",
+      "breakpoints": true
     }
   ]
 }

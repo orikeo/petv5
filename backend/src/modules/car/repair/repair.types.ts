@@ -1,6 +1,7 @@
 export interface CreateRepairDto {
   carId: string;
   repairTypeId: string;
+  repairDate: string;
   odometer?: number | null;
   price: string;
   note?: string | null;
@@ -8,6 +9,7 @@ export interface CreateRepairDto {
 
 export interface UpdateRepairDto {
   repairTypeId?: string;
+  repairDate?: string;
   odometer?: number | null;
   price?: string;
   note?: string | null;

@@ -216,6 +216,8 @@ export const repairs = pgTable(
       .notNull()
       .references(() => repairTypes.id),
 
+    repairDate: date("repair_date").notNull(),
+
     odometer: integer("odometer"),
 
     price: numeric("price", { precision: 10, scale: 2 }).notNull(),
@@ -228,6 +230,10 @@ export const repairs = pgTable(
   (table) => ({
     carIdx: index("repairs_car_idx").on(table.carId),
     repairTypeIdx: index("repairs_type_idx").on(table.repairTypeId),
+    carRepairDateIdx: index("repairs_car_repair_date_idx").on(
+      table.carId,
+      table.repairDate
+    ),
   })
 );
 

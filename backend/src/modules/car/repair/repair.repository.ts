@@ -4,10 +4,6 @@ import { cars, repairs, repairTypes } from "../../../db/schema";
 import { CreateRepairDto, UpdateRepairDto } from "./repair.types";
 
 class RepairRepository {
-  // =========================================================
-  // CARS
-  // =========================================================
-
   async getCarById(carId: string) {
     const [car] = await db
       .select({
@@ -19,10 +15,6 @@ class RepairRepository {
 
     return car;
   }
-
-  // =========================================================
-  // REPAIR TYPES
-  // =========================================================
 
   async getRepairTypeById(repairTypeId: string) {
     const [repairType] = await db
@@ -49,15 +41,13 @@ class RepairRepository {
   }
 
   async getRepairTypes() {
-    const types = await db
+    return db
       .select({
         id: repairTypes.id,
         name: repairTypes.name,
       })
       .from(repairTypes)
       .orderBy(asc(repairTypes.name));
-
-    return types;
   }
 
   async createRepairType(name: string) {
@@ -72,16 +62,13 @@ class RepairRepository {
     return repairType;
   }
 
-  // =========================================================
-  // REPAIRS
-  // =========================================================
-
   async createRepair(data: CreateRepairDto) {
     const [repair] = await db
       .insert(repairs)
       .values({
         carId: data.carId,
         repairTypeId: data.repairTypeId,
+        repairDate: data.repairDate,
         odometer: data.odometer ?? null,
         price: data.price,
         note: data.note ?? null,
@@ -90,6 +77,7 @@ class RepairRepository {
         id: repairs.id,
         carId: repairs.carId,
         repairTypeId: repairs.repairTypeId,
+        repairDate: repairs.repairDate,
         odometer: repairs.odometer,
         price: repairs.price,
         note: repairs.note,
@@ -105,6 +93,7 @@ class RepairRepository {
         id: repairs.id,
         carId: repairs.carId,
         repairTypeId: repairs.repairTypeId,
+        repairDate: repairs.repairDate,
         odometer: repairs.odometer,
         price: repairs.price,
         note: repairs.note,
@@ -119,11 +108,12 @@ class RepairRepository {
   }
 
   async getRepairsByCarId(carId: string) {
-    const repairsList = await db
+    return db
       .select({
         id: repairs.id,
         carId: repairs.carId,
         repairTypeId: repairs.repairTypeId,
+        repairDate: repairs.repairDate,
         odometer: repairs.odometer,
         price: repairs.price,
         note: repairs.note,
@@ -133,14 +123,13 @@ class RepairRepository {
       .from(repairs)
       .leftJoin(repairTypes, eq(repairs.repairTypeId, repairTypes.id))
       .where(eq(repairs.carId, carId))
-      .orderBy(desc(repairs.createdAt));
-
-    return repairsList;
+      .orderBy(desc(repairs.repairDate), desc(repairs.createdAt));
   }
 
   async updateRepair(repairId: string, data: UpdateRepairDto) {
     const updateData: Partial<{
       repairTypeId: string;
+      repairDate: string;
       odometer: number | null;
       price: string;
       note: string | null;
@@ -148,6 +137,10 @@ class RepairRepository {
 
     if (data.repairTypeId !== undefined) {
       updateData.repairTypeId = data.repairTypeId;
+    }
+
+    if (data.repairDate !== undefined) {
+      updateData.repairDate = data.repairDate;
     }
 
     if (data.odometer !== undefined) {
@@ -170,6 +163,7 @@ class RepairRepository {
         id: repairs.id,
         carId: repairs.carId,
         repairTypeId: repairs.repairTypeId,
+        repairDate: repairs.repairDate,
         odometer: repairs.odometer,
         price: repairs.price,
         note: repairs.note,

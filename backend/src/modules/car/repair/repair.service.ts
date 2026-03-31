@@ -21,6 +21,7 @@ class RepairService {
       throw new Error("Тип ремонта не найден");
     }
 
+    const normalizedRepairDate = this.normalizeRepairDate(data.repairDate);
     const normalizedPrice = this.normalizePrice(data.price);
     const normalizedOdometer = this.normalizeOdometer(data.odometer);
     const normalizedNote = this.normalizeNote(data.note);
@@ -28,6 +29,7 @@ class RepairService {
     return repairRepository.createRepair({
       carId: data.carId,
       repairTypeId: data.repairTypeId,
+      repairDate: normalizedRepairDate,
       price: normalizedPrice,
       odometer: normalizedOdometer,
       note: normalizedNote,
@@ -68,11 +70,7 @@ class RepairService {
     return repair;
   }
 
-  async updateRepair(
-    userId: string,
-    repairId: string,
-    data: UpdateRepairDto
-  ) {
+  async updateRepair(userId: string, repairId: string, data: UpdateRepairDto) {
     const existingRepair = await repairRepository.getRepairById(repairId);
 
     if (!existingRepair) {
@@ -103,6 +101,10 @@ class RepairService {
 
     if (data.repairTypeId !== undefined) {
       updateData.repairTypeId = data.repairTypeId;
+    }
+
+    if (data.repairDate !== undefined) {
+      updateData.repairDate = this.normalizeRepairDate(data.repairDate);
     }
 
     if (data.price !== undefined) {
@@ -159,6 +161,24 @@ class RepairService {
     }
 
     return repairRepository.createRepairType(normalizedName);
+  }
+
+  private normalizeRepairDate(value: string): string {
+    const normalizedValue = value.trim();
+
+    if (!normalizedValue) {
+      throw new Error("Дата ремонта обязательна");
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+      throw new Error("Дата ремонта должна быть в формате YYYY-MM-DD");
+    }
+
+    if (Number.isNaN(Date.parse(normalizedValue))) {
+      throw new Error("Некорректная дата ремонта");
+    }
+
+    return normalizedValue;
   }
 
   private normalizePrice(price: string): string {
