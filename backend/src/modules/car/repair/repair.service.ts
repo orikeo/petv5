@@ -1,8 +1,5 @@
 import { repairRepository } from "./repair.repository";
-import {
-  CreateRepairDto,
-  UpdateRepairDto,
-} from "./repair.types";
+import { CreateRepairDto, UpdateRepairDto } from "./repair.types";
 
 class RepairService {
   async createRepair(userId: string, data: CreateRepairDto) {
@@ -24,7 +21,17 @@ class RepairService {
       throw new Error("Тип ремонта не найден");
     }
 
-    return repairRepository.createRepair(data);
+    const normalizedPrice = this.normalizePrice(data.price);
+    const normalizedOdometer = this.normalizeOdometer(data.odometer);
+    const normalizedNote = this.normalizeNote(data.note);
+
+    return repairRepository.createRepair({
+      carId: data.carId,
+      repairTypeId: data.repairTypeId,
+      price: normalizedPrice,
+      odometer: normalizedOdometer,
+      note: normalizedNote,
+    });
   }
 
   async getRepairsByCarId(userId: string, carId: string) {
@@ -92,7 +99,25 @@ class RepairService {
       }
     }
 
-    return repairRepository.updateRepair(repairId, data);
+    const updateData: UpdateRepairDto = {};
+
+    if (data.repairTypeId !== undefined) {
+      updateData.repairTypeId = data.repairTypeId;
+    }
+
+    if (data.price !== undefined) {
+      updateData.price = this.normalizePrice(data.price);
+    }
+
+    if (data.odometer !== undefined) {
+      updateData.odometer = this.normalizeOdometer(data.odometer);
+    }
+
+    if (data.note !== undefined) {
+      updateData.note = this.normalizeNote(data.note);
+    }
+
+    return repairRepository.updateRepair(repairId, updateData);
   }
 
   async deleteRepair(userId: string, repairId: string) {
@@ -134,6 +159,39 @@ class RepairService {
     }
 
     return repairRepository.createRepairType(normalizedName);
+  }
+
+  private normalizePrice(price: string): string {
+    const normalizedValue = price.replace(",", ".").trim();
+    const priceNumber = Number(normalizedValue);
+
+    if (Number.isNaN(priceNumber) || priceNumber <= 0) {
+      throw new Error("Цена ремонта должна быть больше 0");
+    }
+
+    return priceNumber.toFixed(2);
+  }
+
+  private normalizeOdometer(odometer?: number | null): number | null {
+    if (odometer === undefined || odometer === null) {
+      return null;
+    }
+
+    if (!Number.isInteger(odometer) || odometer < 0) {
+      throw new Error("Пробег должен быть целым числом и не меньше 0");
+    }
+
+    return odometer;
+  }
+
+  private normalizeNote(note?: string | null): string | null {
+    if (note === undefined || note === null) {
+      return null;
+    }
+
+    const normalizedNote = note.trim();
+
+    return normalizedNote ? normalizedNote : null;
   }
 }
 

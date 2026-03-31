@@ -2,8 +2,7 @@ import { Router } from "express";
 import { repairController } from "./repair.controller";
 import { authGuard } from "../../../middlewares/auth.middleware";
 
- export const repairRouter = Router();
-
+export const repairRouter = Router();
 
 repairRouter.use(authGuard);
 
@@ -15,4 +14,3 @@ repairRouter.get("/car/:carId", repairController.getRepairsByCarId);
 repairRouter.get("/:id", repairController.getRepairById);
 repairRouter.patch("/:id", repairController.updateRepair);
 repairRouter.delete("/:id", repairController.deleteRepair);
-

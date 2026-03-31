@@ -1,10 +1,7 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { cars, repairs, repairTypes } from "../../../db/schema";
-import {
-  CreateRepairDto,
-  UpdateRepairDto,
-} from "./repair.types";
+import { CreateRepairDto, UpdateRepairDto } from "./repair.types";
 
 class RepairRepository {
   // =========================================================
@@ -57,7 +54,8 @@ class RepairRepository {
         id: repairTypes.id,
         name: repairTypes.name,
       })
-      .from(repairTypes);
+      .from(repairTypes)
+      .orderBy(asc(repairTypes.name));
 
     return types;
   }
