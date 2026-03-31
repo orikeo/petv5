@@ -1,33 +1,24 @@
 import { fuelRepository } from "./fuel.repository";
 import { carRepository } from "../car.repository";
-import { CreateFuelLogDto, UpdateFuelLogDto } from "./fuel.types";
+import {
+  CreateFuelLogDto,
+  UpdateFuelLogDto,
+  FuelConsumptionStats,
+  FuelStatsResponse,
+} from "./fuel.types";
 
 class FuelService {
-  /**
-   * =========================================================
-   * CREATE
-   * =========================================================
-   */
   async create(userId: string, data: CreateFuelLogDto) {
-    /**
-     * 1. Проверяем, что машина существует
-     */
     const car = await carRepository.findById(data.carId);
 
     if (!car) {
       throw new Error("Машина не найдена");
     }
 
-    /**
-     * 2. Проверяем, что машина принадлежит пользователю
-     */
     if (car.userId !== userId) {
       throw new Error("Нет доступа к этой машине");
     }
 
-    /**
-     * 3. Базовая валидация обязательных полей
-     */
     this.validateFuelDate(data.fuelDate);
     this.validatePositiveNumber(data.liters, "Некорректное количество литров");
     this.validatePositiveNumber(
@@ -35,28 +26,9 @@ class FuelService {
       "Некорректная цена за литр"
     );
 
-    /**
-     * 4. odometer теперь необязательный
-     *    Но если он пришёл — проверяем:
-     *    - это число
-     *    - оно не отрицательное
-     */
     if (data.odometer !== null && data.odometer !== undefined) {
-      this.validateNonNegativeInteger(
-        data.odometer,
-        "Некорректный пробег"
-      );
+      this.validateNonNegativeInteger(data.odometer, "Некорректный пробег");
 
-      /**
-       * 5. Проверяем пробег относительно предыдущей записи
-       *
-       * Идея:
-       * - ищем последнюю запись этой машины
-       * - только с известным odometer
-       * - только на эту дату и раньше
-       *
-       * Если такая запись есть, новый пробег не должен быть меньше.
-       */
       const previousLog = await fuelRepository.getLastLogBeforeOrOnDate(
         data.carId,
         data.fuelDate
@@ -73,20 +45,8 @@ class FuelService {
       }
     }
 
-    /**
-     * 6. totalPrice НЕ доверяем клиенту.
-     *    Считаем на сервере сами.
-     *
-     * toFixed(2) нужен, чтобы не ловить типичные проблемы JS с float:
-     * например 0.1 + 0.2 и т.д.
-     */
-    const totalPrice = Number(
-      (data.liters * data.pricePerLiter).toFixed(2)
-    );
+    const totalPrice = Number((data.liters * data.pricePerLiter).toFixed(2));
 
-    /**
-     * 7. Создаём запись
-     */
     return fuelRepository.create({
       carId: data.carId,
       fuelDate: data.fuelDate,
@@ -99,15 +59,7 @@ class FuelService {
     });
   }
 
-  /**
-   * =========================================================
-   * GET BY CAR
-   * =========================================================
-   */
   async getByCar(userId: string, carId: string) {
-    /**
-     * Проверяем доступ к машине
-     */
     const car = await carRepository.findById(carId);
 
     if (!car) {
@@ -121,24 +73,96 @@ class FuelService {
     return fuelRepository.findByCar(carId);
   }
 
-  /**
-   * =========================================================
-   * DELETE
-   * =========================================================
-   */
+  async getStatsByCar(userId: string, carId: string): Promise<FuelStatsResponse> {
+    const car = await carRepository.findById(carId);
+
+    if (!car) {
+      throw new Error("Машина не найдена");
+    }
+
+    if (car.userId !== userId) {
+      throw new Error("Нет доступа к этой машине");
+    }
+
+    const logs = await fuelRepository.findByCar(carId);
+
+    if (logs.length === 0) {
+      return {
+        summary: {
+          totalLogs: 0,
+          logsWithOdometer: 0,
+          totalFullTankLogs: 0,
+          totalLiters: 0,
+          totalSpent: 0,
+          averagePricePerLiter: 0,
+          averageFillVolume: 0,
+          lastFuelDate: null,
+          lastOdometer: null,
+        },
+        consumption: null,
+      };
+    }
+
+    const totalLogs = logs.length;
+    const logsWithOdometer = logs.filter((log) => log.odometer !== null).length;
+    const totalFullTankLogs = logs.filter((log) => log.fullTank).length;
+
+    const totalLiters = logs.reduce((sum, log) => sum + Number(log.liters), 0);
+    const totalSpent = logs.reduce((sum, log) => sum + Number(log.totalPrice), 0);
+
+    const averagePricePerLiter =
+      totalLiters > 0 ? Number((totalSpent / totalLiters).toFixed(2)) : 0;
+
+    const averageFillVolume =
+      totalLogs > 0 ? Number((totalLiters / totalLogs).toFixed(2)) : 0;
+
+    const sortedAsc = [...logs].sort((a, b) => {
+      const dateCompare = a.fuelDate.localeCompare(b.fuelDate);
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
+
+    const latestByDate = [...logs].sort((a, b) => {
+      const dateCompare = b.fuelDate.localeCompare(a.fuelDate);
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    })[0];
+
+    const summary: FuelStatsResponse["summary"] = {
+      totalLogs,
+      logsWithOdometer,
+      totalFullTankLogs,
+      totalLiters: Number(totalLiters.toFixed(2)),
+      totalSpent: Number(totalSpent.toFixed(2)),
+      averagePricePerLiter,
+      averageFillVolume,
+      lastFuelDate: latestByDate?.fuelDate ?? null,
+      lastOdometer: latestByDate?.odometer ?? null,
+    };
+
+    const consumption = this.calculateConsumptionStats(sortedAsc);
+
+    return {
+      summary,
+      consumption,
+    };
+  }
+
   async delete(userId: string, id: string) {
-    /**
-     * Получаем лог по id
-     */
     const log = await fuelRepository.getById(id);
 
     if (!log) {
       throw new Error("Запись о заправке не найдена");
     }
 
-    /**
-     * Проверяем доступ через машину
-     */
     const car = await carRepository.findById(log.carId);
 
     if (!car) {
@@ -152,27 +176,13 @@ class FuelService {
     await fuelRepository.delete(id);
   }
 
-  /**
-   * =========================================================
-   * UPDATE
-   * =========================================================
-   *
-   * Здесь логика похожа на create,
-   * но сначала получаем старую запись.
-   */
   async update(userId: string, id: string, data: UpdateFuelLogDto) {
-    /**
-     * 1. Проверяем, что запись существует
-     */
     const existingLog = await fuelRepository.getById(id);
 
     if (!existingLog) {
       throw new Error("Запись о заправке не найдена");
     }
 
-    /**
-     * 2. Проверяем доступ к машине
-     */
     const car = await carRepository.findById(existingLog.carId);
 
     if (!car) {
@@ -183,10 +193,6 @@ class FuelService {
       throw new Error("Нет доступа к этой машине");
     }
 
-    /**
-     * 3. Собираем итоговые значения:
-     *    если поле не пришло в update — берём старое
-     */
     const fuelDate = data.fuelDate ?? existingLog.fuelDate;
     const odometer =
       data.odometer !== undefined ? data.odometer : existingLog.odometer;
@@ -197,9 +203,6 @@ class FuelService {
     const station =
       data.station !== undefined ? data.station : existingLog.station;
 
-    /**
-     * 4. Валидируем собранные итоговые данные
-     */
     this.validateFuelDate(fuelDate);
     this.validatePositiveNumber(liters, "Некорректное количество литров");
     this.validatePositiveNumber(
@@ -210,10 +213,6 @@ class FuelService {
     if (odometer !== null && odometer !== undefined) {
       this.validateNonNegativeInteger(odometer, "Некорректный пробег");
 
-      /**
-       * В update важно не сравнить запись саму с собой,
-       * поэтому нужен метод, который исключает текущий id.
-       */
       const previousLog = await fuelRepository.getLastLogBeforeOrOnDate(
         existingLog.carId,
         fuelDate,
@@ -231,14 +230,8 @@ class FuelService {
       }
     }
 
-    /**
-     * 5. Пересчитываем totalPrice заново
-     */
     const totalPrice = Number((liters * pricePerLiter).toFixed(2));
 
-    /**
-     * 6. Обновляем запись
-     */
     return fuelRepository.update(id, {
       fuelDate,
       odometer: odometer ?? null,
@@ -250,53 +243,120 @@ class FuelService {
     });
   }
 
-  /**
-   * =========================================================
-   * HELPERS
-   * =========================================================
-   */
+  private calculateConsumptionStats(
+    logsAsc: Array<{
+      fuelDate: string;
+      odometer: number | null;
+      liters: string;
+      totalPrice: string;
+      fullTank: boolean;
+      createdAt: Date;
+    }>
+  ): FuelConsumptionStats | null {
+    const fullTankLogs = logsAsc.filter(
+      (log) => log.fullTank && log.odometer !== null
+    );
 
-  /**
-   * Проверка даты.
-   *
-   * Пока делаем базово:
-   * - поле обязательно
-   * - должно парситься в Date
-   *
-   * Позже можно усилить:
-   * - не разрешать слишком далёкое будущее
-   * - строго проверять формат YYYY-MM-DD
-   */
+    if (fullTankLogs.length < 2) {
+      return null;
+    }
+
+    let totalDistanceKm = 0;
+    let totalLiters = 0;
+    let totalSpent = 0;
+    let segmentCount = 0;
+
+    let previousFullTankIndex: number | null = null;
+
+    for (let i = 0; i < logsAsc.length; i += 1) {
+      const current = logsAsc[i];
+
+      if (!current.fullTank || current.odometer === null) {
+        continue;
+      }
+
+      if (previousFullTankIndex === null) {
+        previousFullTankIndex = i;
+        continue;
+      }
+
+      const previousFull = logsAsc[previousFullTankIndex];
+
+      if (previousFull.odometer === null || current.odometer === null) {
+        previousFullTankIndex = i;
+        continue;
+      }
+
+      const distance = current.odometer - previousFull.odometer;
+
+      if (distance <= 0) {
+        previousFullTankIndex = i;
+        continue;
+      }
+
+      let segmentLiters = 0;
+      let segmentSpent = 0;
+
+      for (let j = previousFullTankIndex + 1; j <= i; j += 1) {
+        segmentLiters += Number(logsAsc[j].liters);
+        segmentSpent += Number(logsAsc[j].totalPrice);
+      }
+
+      if (segmentLiters <= 0) {
+        previousFullTankIndex = i;
+        continue;
+      }
+
+      totalDistanceKm += distance;
+      totalLiters += segmentLiters;
+      totalSpent += segmentSpent;
+      segmentCount += 1;
+
+      previousFullTankIndex = i;
+    }
+
+    if (segmentCount === 0 || totalDistanceKm <= 0 || totalLiters <= 0) {
+      return null;
+    }
+
+    return {
+      segmentCount,
+      totalDistanceKm,
+      totalLiters: Number(totalLiters.toFixed(2)),
+      totalSpent: Number(totalSpent.toFixed(2)),
+      averageConsumptionPer100Km: Number(
+        ((totalLiters / totalDistanceKm) * 100).toFixed(2)
+      ),
+      averageCostPerKm: Number((totalSpent / totalDistanceKm).toFixed(2)),
+      averageCostPer100Km: Number(
+        ((totalSpent / totalDistanceKm) * 100).toFixed(2)
+      ),
+    };
+  }
+
   private validateFuelDate(value: string) {
-    if (!value || Number.isNaN(Date.parse(value))) {
+    const normalizedValue = value.trim();
+
+    if (!normalizedValue) {
+      throw new Error("Некорректная дата заправки");
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+      throw new Error("Некорректная дата заправки");
+    }
+
+    if (Number.isNaN(Date.parse(normalizedValue))) {
       throw new Error("Некорректная дата заправки");
     }
   }
 
-  /**
-   * Проверка положительного числа (> 0)
-   *
-   * Используем для liters и pricePerLiter
-   */
   private validatePositiveNumber(value: number, errorMessage: string) {
-    if (
-      typeof value !== "number" ||
-      Number.isNaN(value) ||
-      value <= 0
-    ) {
+    if (typeof value !== "number" || Number.isNaN(value) || value <= 0) {
       throw new Error(errorMessage);
     }
   }
 
-  /**
-   * Проверка целого неотрицательного числа (>= 0)
-   *
-   * Используем для odometer
-   */
-  private validateNonNegativeInteger(
-    value: number,
-    errorMessage: string
-  ) {
+  private validateNonNegativeInteger(value: number, errorMessage: string) {
     if (
       typeof value !== "number" ||
       Number.isNaN(value) ||

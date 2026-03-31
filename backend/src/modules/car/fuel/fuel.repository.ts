@@ -1,17 +1,7 @@
 import { and, desc, eq, isNotNull, lte, ne } from "drizzle-orm";
 import { db } from "../../../db";
 import { fuelLogs } from "../../../db/schema";
-import { CreateFuelLogDto, UpdateFuelLogDto } from "./fuel.types";
 
-/**
- * Отдельный тип для create/update после того,
- * как service уже посчитал totalPrice.
- *
- * Почему не используем DTO напрямую:
- * - DTO приходит "снаружи"
- * - repository работает уже с подготовленными данными
- * - здесь totalPrice уже обязателен и посчитан
- */
 type FuelLogDbInput = {
   carId: string;
   fuelDate: string;
@@ -24,14 +14,6 @@ type FuelLogDbInput = {
 };
 
 class FuelRepository {
-  /**
-   * =========================================================
-   * CREATE
-   * =========================================================
-   *
-   * Repository не валидирует бизнес-логику.
-   * Он просто сохраняет уже подготовленные данные.
-   */
   async create(data: FuelLogDbInput) {
     const [entry] = await db
       .insert(fuelLogs)
@@ -61,16 +43,6 @@ class FuelRepository {
     return entry;
   }
 
-  /**
-   * =========================================================
-   * GET BY ID
-   * =========================================================
-   *
-   * Нужен для:
-   * - update
-   * - delete
-   * - проверки доступа через carId
-   */
   async getById(id: string) {
     const [entry] = await db
       .select({
@@ -91,19 +63,6 @@ class FuelRepository {
     return entry;
   }
 
-  /**
-   * =========================================================
-   * FIND BY CAR
-   * =========================================================
-   *
-   * Список логов машины.
-   *
-   * Логичнее сортировать:
-   * 1) сначала по fuelDate (новые сверху)
-   * 2) а не по odometer
-   *
-   * Потому что пользователь обычно смотрит историю по датам.
-   */
   async findByCar(carId: string) {
     return db
       .select({
@@ -123,22 +82,10 @@ class FuelRepository {
       .orderBy(desc(fuelLogs.fuelDate), desc(fuelLogs.createdAt));
   }
 
-  /**
-   * =========================================================
-   * DELETE
-   * =========================================================
-   */
   async delete(id: string) {
     await db.delete(fuelLogs).where(eq(fuelLogs.id, id));
   }
 
-  /**
-   * =========================================================
-   * UPDATE
-   * =========================================================
-   *
-   * Как и create, repository получает уже готовые данные.
-   */
   async update(id: string, data: Omit<FuelLogDbInput, "carId">) {
     const [entry] = await db
       .update(fuelLogs)
@@ -168,21 +115,6 @@ class FuelRepository {
     return entry;
   }
 
-  /**
-   * =========================================================
-   * GET LAST LOG BEFORE OR ON DATE
-   * =========================================================
-   *
-   * Это ключевой метод для валидации пробега.
-   *
-   * Ищем:
-   * - записи этой машины
-   * - только с odometer != null
-   * - только на эту дату и раньше
-   *
-   * excludeId нужен для update:
-   * чтобы запись не сравнивалась сама с собой.
-   */
   async getLastLogBeforeOrOnDate(
     carId: string,
     fuelDate: string,
@@ -213,7 +145,11 @@ class FuelRepository {
       })
       .from(fuelLogs)
       .where(and(...conditions))
-      .orderBy(desc(fuelLogs.fuelDate), desc(fuelLogs.odometer), desc(fuelLogs.createdAt))
+      .orderBy(
+        desc(fuelLogs.fuelDate),
+        desc(fuelLogs.odometer),
+        desc(fuelLogs.createdAt)
+      )
       .limit(1);
 
     return entry;
